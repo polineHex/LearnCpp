@@ -1,32 +1,32 @@
 #include "Game.h"
-#include "raymath.h"
+
 #include <raylib.h>
+#include <raymath.h>
+
+#include "Map/Map.h"
 
 namespace game
 {
 
 Game::Game() : mRenderer(mEcs)
 {
+	Map::CreateMap(mEcs);
+	Character::InitCharacter(mEcs);
 }
 
 void Game::Start()
 {
+	while (0)
+	{
+		Input();
+		Update();
+		Draw();
+	}
+
 	while (mEcs.progress(GetFrameTime()))
 	{
-
-		DrawTextureEx(map, mapPos, 0.0, 1.0, WHITE);
-		//hero.Update(GetFrameTime());
-		//// check map bounds
-		//if (hero.GetWorldPos().x < 0.f ||
-		//	hero.GetWorldPos().y < 0.f ||
-		//	hero.GetWorldPos().x + WIDTH > map.width * mapScale ||
-		//	hero.GetWorldPos().y + HEIGHT > map.height * mapScale)
-		//{
-		//	hero.Stop();
-		//}
-
-
-
+		// There shouldn't be anything in here.
+		// It should all be systems.
 	}
 }
 
