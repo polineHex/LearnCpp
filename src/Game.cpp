@@ -16,13 +16,6 @@ Game::Game() : mRenderer(mEcs)
 
 void Game::Start()
 {
-	while (0)
-	{
-		Input();
-		Update();
-		Draw();
-	}
-
 	while (mEcs.progress(GetFrameTime()))
 	{
 		// There shouldn't be anything in here.
