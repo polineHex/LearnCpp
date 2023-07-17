@@ -2,6 +2,9 @@
 
 #include <raylib.h>
 
+namespace game
+{
+
 struct SpriteComponent
 {
 	Texture2D mTexture;
@@ -10,3 +13,4 @@ struct SpriteComponent
 	Vector2 mOrigin;
 	int mZDepth;
 };
+}// namespace game

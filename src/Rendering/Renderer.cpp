@@ -6,7 +6,9 @@
 #include "DebugWindow.h"
 #include "Globals.h"
 
-namespace game::Rendering
+namespace game
+{
+namespace Rendering
 {
 
 Renderer::Renderer(const flecs::world& ecs)
@@ -25,10 +27,13 @@ Renderer::Renderer(const flecs::world& ecs)
 			.kind(flecs::OnStore)
 			.each(DrawTextures);
 
-	ecs.system<const TransformComponent, const SpriteComponent>("Renderer::DrawSprites")
+	ecs.system<const TransformComponent, SpriteComponent, const AnimationComponent>("Renderer::DrawSprites")
 			.order_by<SpriteComponent>(CompareZDepth)
 			.kind(flecs::OnStore)
 			.each(DrawSprites);
+	ecs.system<AnimationComponent>()
+			.kind(flecs::OnUpdate)
+			.each(UpdateAnimationFrame);
 
 	ecs.system("Renderer::DrawDebug")
 			.kind(flecs::PostFrame)
@@ -61,9 +66,26 @@ void Renderer::DrawTextures(flecs::entity entity, const TransformComponent& tran
 	DrawTextureV(textureComponent.mTexture, transformComponent.mPosition, WHITE);
 }
 
-void Renderer::DrawSprites(flecs::entity entity, const TransformComponent& transformComponent, const SpriteComponent& spriteComponent)
+void Renderer::DrawSprites(flecs::entity entity, const TransformComponent& transformComponent, SpriteComponent& spriteComponent,
+						   const AnimationComponent& animationComponent)
 {
-	DrawTexturePro(spriteComponent.mTexture, spriteComponent.mSource, {transformComponent.mPosition.x, transformComponent.mPosition.y, spriteComponent.mHeight.x, spriteComponent.mHeight.y}, spriteComponent.mOrigin, 0, WHITE);
+	spriteComponent.mSource.x = animationComponent.mCurrentFrame * spriteComponent.mSource.width;
+	DrawTexturePro(spriteComponent.mTexture, 
+		{spriteComponent.mSource.x, spriteComponent.mSource.y, spriteComponent.mSource.width * transformComponent.mScale.x, spriteComponent.mSource.height},
+		{transformComponent.mPosition.x, transformComponent.mPosition.y, spriteComponent.mHeight.x, spriteComponent.mHeight.y}, 
+		spriteComponent.mOrigin, 0, WHITE);
+}
+
+void Renderer::UpdateAnimationFrame(flecs::entity entity, AnimationComponent& animationComponent)
+{
+	animationComponent.mTimer += GetFrameTime();
+	if (animationComponent.mTimer >= animationComponent.mFrameDuration)
+	{
+		animationComponent.mCurrentFrame++;
+		animationComponent.mTimer = 0.f;
+		if (animationComponent.mCurrentFrame > animationComponent.mFrameCount)
+			animationComponent.mCurrentFrame = 0;
+	}
 }
 
 void Renderer::DrawDebug(const flecs::iter& iter, int index)
@@ -75,7 +97,7 @@ void Renderer::DrawDebug(const flecs::iter& iter, int index)
 	DebugWindow::Draw();
 
 	// Keeping this commented to have it at hand easily when we need to look at the demo window.
-//	ImGui::ShowDemoWindow();
+	//	ImGui::ShowDemoWindow();
 }
 
 void Renderer::PostDraw(const flecs::iter& iter, int index)
@@ -84,4 +106,5 @@ void Renderer::PostDraw(const flecs::iter& iter, int index)
 	EndDrawing();
 }
 
-} // namespace game::Rendering
+}// namespace Rendering	
+} // namespace game
