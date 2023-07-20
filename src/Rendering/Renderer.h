@@ -6,6 +6,7 @@
 #include "Rendering/Components/TextureComponent.h"
 #include "Rendering/Components/SpriteComponent.h"
 #include "Rendering/Components/AnimationComponent.h"
+#include "Rendering/Components/AnimationStateComponent.h"
 
 namespace game
 {
@@ -24,8 +25,8 @@ private:
 	static int CompareZDepth(flecs::entity_t entityA, const SpriteComponent* spriteComponentA, flecs::entity_t entityB, const SpriteComponent* spriteComponentB);
 	
 	static void DrawTextures(flecs::entity entity, const TransformComponent& transformComponent, const TextureComponent& textureComponent);
-	static void DrawSprites(flecs::entity entity, const TransformComponent& transformComponent, SpriteComponent& spriteComponent, const AnimationComponent& animationComponent); 
-	static void UpdateAnimationFrame(flecs::entity entity, AnimationComponent& animationComponent); 
+	static void DrawSprites(flecs::entity entity, const TransformComponent& transformComponent, const SpriteComponent& spriteComponent); 
+	static void UpdateAnimationFrame(flecs::entity entity, AnimationComponent& animationComponent, SpriteComponent& spriteComponent, const AnimationStateComponent& animationStateComponent); 
 	
 	static void DrawDebug(const flecs::iter& iter, int index);
 	static void PostDraw(const flecs::iter& iter, int index);

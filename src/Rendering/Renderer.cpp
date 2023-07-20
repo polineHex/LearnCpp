@@ -27,11 +27,11 @@ Renderer::Renderer(const flecs::world& ecs)
 			.kind(flecs::OnStore)
 			.each(DrawTextures);
 
-	ecs.system<const TransformComponent, SpriteComponent, const AnimationComponent>("Renderer::DrawSprites")
+	ecs.system<const TransformComponent,const SpriteComponent>("Renderer::DrawSprites")
 			.order_by<SpriteComponent>(CompareZDepth)
 			.kind(flecs::OnStore)
 			.each(DrawSprites);
-	ecs.system<AnimationComponent>()
+	ecs.system<AnimationComponent, SpriteComponent, AnimationStateComponent>()
 			.kind(flecs::OnUpdate)
 			.each(UpdateAnimationFrame);
 
@@ -66,25 +66,27 @@ void Renderer::DrawTextures(flecs::entity entity, const TransformComponent& tran
 	DrawTextureV(textureComponent.mTexture, transformComponent.mPosition, WHITE);
 }
 
-void Renderer::DrawSprites(flecs::entity entity, const TransformComponent& transformComponent, SpriteComponent& spriteComponent,
-						   const AnimationComponent& animationComponent)
+void Renderer::DrawSprites(flecs::entity entity, const TransformComponent& transformComponent, const SpriteComponent& spriteComponent)
 {
-	spriteComponent.mSource.x = animationComponent.mCurrentFrame * spriteComponent.mSource.width;
-	DrawTexturePro(spriteComponent.mTexture, 
-		{spriteComponent.mSource.x, spriteComponent.mSource.y, spriteComponent.mSource.width * transformComponent.mScale.x, spriteComponent.mSource.height},
-		{transformComponent.mPosition.x, transformComponent.mPosition.y, spriteComponent.mHeight.x, spriteComponent.mHeight.y}, 
-		spriteComponent.mOrigin, 0, WHITE);
+	DrawTexturePro(spriteComponent.mTexture,
+				   {spriteComponent.mSource.x, spriteComponent.mSource.y, spriteComponent.mSource.width * transformComponent.mScale.x, spriteComponent.mSource.height},
+				   {transformComponent.mPosition.x, transformComponent.mPosition.y, spriteComponent.mHeight.x, spriteComponent.mHeight.y},
+				   spriteComponent.mOrigin, 0, WHITE);
 }
 
-void Renderer::UpdateAnimationFrame(flecs::entity entity, AnimationComponent& animationComponent)
+void Renderer::UpdateAnimationFrame(flecs::entity entity, AnimationComponent& animationComponent, SpriteComponent& spriteComponent, const AnimationStateComponent& animationStateComponent)
 {
 	animationComponent.mTimer += GetFrameTime();
+	spriteComponent.mSource.y = (int)animationStateComponent.mCurrentAnimName * spriteComponent.mSource.height;
+
 	if (animationComponent.mTimer >= animationComponent.mFrameDuration)
 	{
 		animationComponent.mCurrentFrame++;
 		animationComponent.mTimer = 0.f;
 		if (animationComponent.mCurrentFrame > animationComponent.mFrameCount)
 			animationComponent.mCurrentFrame = 0;
+		
+		spriteComponent.mSource.x = animationComponent.mCurrentFrame * spriteComponent.mSource.width;
 	}
 }
 
