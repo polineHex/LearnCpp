@@ -7,7 +7,7 @@ namespace game
 
  enum class AnimationName
 {
-	IDLE,//google style says it should be kIdle?
+	IDLE,//QUESTION: google style says it should be kIdle?
 	RUN,
 	ATTACK
 };
