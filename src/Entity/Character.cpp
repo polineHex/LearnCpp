@@ -4,6 +4,7 @@
 
 #include "Entity/Components/TransformComponent.h"
 #include "Rendering/Components/SpriteComponent.h"
+#include "Rendering/Components/TextureComponent.h"
 #include "Rendering/Components/AnimationComponent.h"
 
 namespace game
@@ -49,9 +50,20 @@ void Character::CharacterUpdate(flecs::entity characterEntity, TransformComponen
 	
 	//Changing orientation of the character depending on where it's moving
 	direction.x < 0.f ? transformComponent.mScale.x = -1.f : transformComponent.mScale.x = 1.f;
-	transformComponent.mPosition = Vector2Add(transformComponent.mPosition, Vector2Scale(Vector2Normalize(direction), CHARACTER_SPEED));
+	
+	//Check for map bounds
+	flecs::entity mapEntity = characterEntity.world().entity("Map");
+	Texture2D mapTexture = mapEntity.get_ref<TextureComponent>()->mTexture;
 
-	//Check for map bounds.
+	// Calculate new position
+	Vector2 newPosition = Vector2Add(transformComponent.mPosition, Vector2Scale(Vector2Normalize(direction), CHARACTER_SPEED));
+
+	// Check if the new position is within map boundaries
+	if (newPosition.x >= 0 && newPosition.x <= mapTexture.width-CHARACTER_WIDTH &&
+		newPosition.y >= 0 && newPosition.y <= mapTexture.height-CHARACTER_HEIGHT)
+	{
+		transformComponent.mPosition = newPosition;
+	}
 }
 
 }// namespace game
