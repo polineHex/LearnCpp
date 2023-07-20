@@ -2,7 +2,6 @@
 
 #include <flecs.h>
 
-#include "Rendering/RenderUtils.h"
 #include "Entity/Components/TransformComponent.h"
 #include "Rendering/Components/SpriteComponent.h"
 #include "Rendering/Components/AnimationStateComponent.h"

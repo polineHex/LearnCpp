@@ -2,8 +2,7 @@
 
 #include <raymath.h>
 
-#include "Entity/Components/TransformComponent.h"
-#include "Rendering/Components/SpriteComponent.h"
+#include "Rendering/RenderUtils.h"
 #include "Rendering/Components/TextureComponent.h"
 #include "Rendering/Components/AnimationComponent.h"
 
@@ -15,7 +14,8 @@ void Character::InitCharacter(flecs::world& ecs)
 	ecs.entity("Player")
 			.add<CharacterTag>()
 			.set<TransformComponent>({100, 100})
-			.set<SpriteComponent>({RenderUtils::LoadMyTexture("characters/knight_spritesheet_16x16_8x2.png"), {0, 0, CHARACTER_WIDTH, CHARACTER_HEIGHT}, {CHARACTER_WIDTH * 2, CHARACTER_HEIGHT * 2}, {0, 0}, 0})
+			.set<SpriteComponent>({RenderUtils::LoadMyTexture("characters/knight_spritesheet_16x16_8x2.png"), 
+									{0, 0, CHARACTER_WIDTH, CHARACTER_HEIGHT}, {CHARACTER_WIDTH * 2, CHARACTER_HEIGHT * 2}, {0, 0}, 5})
 			.emplace<AnimationComponent>(5, 0.1f, 0.0f, 0)
 			.emplace<AnimationStateComponent>(AnimationName::IDLE);
 	ecs.system<TransformComponent, AnimationStateComponent>()
@@ -58,7 +58,8 @@ void Character::CharacterUpdate(flecs::entity characterEntity, TransformComponen
 	// Calculate new position
 	Vector2 newPosition = Vector2Add(transformComponent.mPosition, Vector2Scale(Vector2Normalize(direction), CHARACTER_SPEED));
 
-	// Check if the new position is within map boundaries
+	// Check if the new position is within map boundaries 
+	//QUESTION: if i want this as function, would it be a system on map? how do i then call one?
 	if (newPosition.x >= 0 && newPosition.x <= mapTexture.width-CHARACTER_WIDTH &&
 		newPosition.y >= 0 && newPosition.y <= mapTexture.height-CHARACTER_HEIGHT)
 	{

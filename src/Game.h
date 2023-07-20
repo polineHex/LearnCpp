@@ -2,7 +2,6 @@
 
 #include <flecs.h>
 #include "Rendering/RenderUtils.h"
-#include "Entity/Character.h"
 #include "Globals.h"
 
 #include "Rendering/Renderer.h"
