@@ -3,6 +3,7 @@
 #include <raymath.h>
 
 #include "Rendering/RenderUtils.h"
+#include "Physics/PhysicsUtils.h"
 #include "Rendering/Components/TextureComponent.h"
 #include "Rendering/Components/AnimationComponent.h"
 
@@ -11,20 +12,23 @@ namespace game
 
 void Character::InitCharacter(flecs::world& ecs)
 {
+	//TODO: define components first, and then assign them, to link relevant data (texture width)
 	ecs.entity("Player")
 			.add<CharacterTag>()
 			.set<TransformComponent>({100, 100})
+			.set<CollisionComponent>({100, 100, CHARACTER_WIDTH * 2, CHARACTER_HEIGHT * 2})
 			.set<SpriteComponent>({RenderUtils::LoadMyTexture("characters/knight_spritesheet_16x16_8x2.png"), 
 									{0, 0, CHARACTER_WIDTH, CHARACTER_HEIGHT}, {CHARACTER_WIDTH * 2, CHARACTER_HEIGHT * 2}, {0, 0}, 5})
 			.emplace<AnimationComponent>(5, 0.1f, 0.0f, 0)
 			.emplace<AnimationStateComponent>(AnimationName::IDLE);
-	ecs.system<TransformComponent, AnimationStateComponent>()
+	ecs.system<TransformComponent, AnimationStateComponent, CollisionComponent>()
 			.with<CharacterTag>()
 			.kind(flecs::OnUpdate)
 			.each(CharacterUpdate);
 }
 
-void Character::CharacterUpdate(flecs::entity characterEntity, TransformComponent& transformComponent, AnimationStateComponent& animationStateComponent)
+void Character::CharacterUpdate(flecs::entity characterEntity, TransformComponent& transformComponent, 
+								AnimationStateComponent& animationStateComponent, CollisionComponent& collisionComponent)
 {
 	Vector2 direction{};
 	int frame{};
@@ -63,7 +67,23 @@ void Character::CharacterUpdate(flecs::entity characterEntity, TransformComponen
 	if (newPosition.x >= 0 && newPosition.x <= mapTexture.width-CHARACTER_WIDTH &&
 		newPosition.y >= 0 && newPosition.y <= mapTexture.height-CHARACTER_HEIGHT)
 	{
-		transformComponent.mPosition = newPosition;
+		  // Create a new rectangle that represents where the character would move
+		Rectangle newCharacterRect = {newPosition.x, newPosition.y, collisionComponent.mCollisionRect.width, collisionComponent.mCollisionRect.height};
+
+		bool isCollision = false;
+
+		// Iterate over all entities that have a CollisionComponent
+		characterEntity.world().each<CollisionComponent>([&](flecs::entity e, CollisionComponent& otherCollisionComponent) {
+			if (e != characterEntity && PhysicsUtils::CheckCollisionRecs(newCharacterRect, otherCollisionComponent.mCollisionRect))
+			{
+				isCollision = true;
+			}
+		});
+
+		if (!isCollision)
+		{
+			transformComponent.mPosition = newPosition;
+		}
 	}
 }
 
