@@ -9,7 +9,7 @@ namespace game
 class RenderUtils
 {
 public:
-	static Texture2D LoadMyTexture(std::string texturePath);
+	static Texture2D LoadMyTexture(const std::string& texturePath);
 };
 
 }// namespace game
