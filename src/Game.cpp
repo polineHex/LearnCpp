@@ -11,7 +11,7 @@ namespace game
 
 Game::Game() : mRenderer(mEcs)
 {
-	Map::CreateMap(mEcs);
+	map::CreateMap(mEcs);
 	Character::InitCharacter(mEcs);
 	Tower::InitTower(mEcs);
 

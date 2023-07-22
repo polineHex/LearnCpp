@@ -12,7 +12,7 @@ namespace game
 
 const int CHARACTER_WIDTH = 16;
 const int CHARACTER_HEIGHT = 16;
-const float CHARACTER_SPEED = 4.f;
+const float CHARACTER_SPEED = 250.f;
 
 
 struct CharacterTag {

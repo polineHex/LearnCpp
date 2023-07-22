@@ -6,6 +6,7 @@
 #include "Physics/PhysicsUtils.h"
 #include "Rendering/Components/TextureComponent.h"
 #include "Rendering/Components/AnimationComponent.h"
+#include "Map/Map.h"
 
 namespace game
 {
@@ -56,11 +57,11 @@ void Character::CharacterUpdate(flecs::entity characterEntity, TransformComponen
 	direction.x < 0.f ? transformComponent.mScale.x = -1.f : transformComponent.mScale.x = 1.f;
 	
 	//Check for map bounds
-	flecs::entity mapEntity = characterEntity.world().entity("Map");
+	flecs::entity mapEntity = characterEntity.world().component<MapTag>().target<MapTag>();
 	Texture2D mapTexture = mapEntity.get_ref<TextureComponent>()->mTexture;
 
 	// Calculate new position
-	Vector2 newPosition = Vector2Add(transformComponent.mPosition, Vector2Scale(Vector2Normalize(direction), CHARACTER_SPEED));
+	Vector2 newPosition = Vector2Add(transformComponent.mPosition, Vector2Scale(Vector2Normalize(direction), CHARACTER_SPEED * GetFrameTime()));
 
 	// Check if the new position is within map boundaries 
 	//QUESTION: if i want this as function, would it be a system on map? how do i then call one?

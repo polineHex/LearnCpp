@@ -4,10 +4,14 @@
 
 namespace game
 {
-class Map
+
+struct MapTag{};
+
+namespace map
 {
-public:
-	static void CreateMap(flecs::world& ecs);
-};
+
+void CreateMap(flecs::world& ecs);
+
+} // namespace map
 
 } // namespace game

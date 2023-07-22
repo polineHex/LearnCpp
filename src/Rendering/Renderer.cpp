@@ -14,7 +14,7 @@ namespace Rendering
 Renderer::Renderer(const flecs::world& ecs)
 {
 	InitWindow(WIDTH, HEIGHT, TITLE);
-	SetTargetFPS(FPS);
+	SetTargetFPS(gFps);
 
 	rlImGuiSetup(true);
 
