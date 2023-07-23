@@ -9,8 +9,62 @@
 namespace game
 {
 
+static void RegisterComponents(const flecs::world& ecs)
+{
+	// 3rd-Party components/structs (e.g. raylib).
+	ecs.component<Rectangle>()
+			.member<float>("x")
+			.member<float>("y")
+			.member<float>("width")
+			.member<float>("height");
+
+	ecs.component<Vector2>()
+			.member<float>("x")
+			.member<float>("y");
+
+	ecs.component<Texture>()
+			.member<unsigned int>("id")
+			.member<int>("width")
+			.member<int>("height")
+			.member<int>("mipmaps")
+			.member<int>("format");
+
+	// Game components/structs.
+
+	// Register components QUESTION:why we didnt have to do it before?
+	ecs.component<CollisionComponent>()
+			.member<Rectangle>("mCollisionRect");
+
+	ecs.component<TransformComponent>()
+			.member<Vector2>("mPosition")
+			.member<Vector2>("mScale");
+
+	ecs.component<SpriteComponent>()
+			.member<Texture2D>("mTexture")
+			.member<Rectangle>("mSource")
+			.member<Vector2>("mHeight")
+			.member<Vector2>("mOrigin")
+			.member<int>("mZDepth");
+
+	ecs.component<AnimationComponent>()
+			.member<int>("mFrameCount")
+			.member<float>("mFrameDuration")
+			.member<float>("mTimer")
+			.member<int>("mCurrentFrame");
+
+	ecs.component<AnimationName>()
+			.constant("IDLE", AnimationName::IDLE)
+			.constant("RUN", AnimationName::RUN)
+			.constant("ATTACK", AnimationName::ATTACK);
+
+	ecs.component<AnimationStateComponent>()
+	        .member<AnimationName>("mCurrentAnimName");
+}
+
 Game::Game() : mRenderer(mEcs)
 {
+	RegisterComponents(mEcs);
+
 	map::CreateMap(mEcs);
 	Character::InitCharacter(mEcs);
 	Tower::InitTower(mEcs);

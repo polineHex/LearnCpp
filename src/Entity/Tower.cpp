@@ -1,9 +1,10 @@
 #include "Tower.h"
 
-#include "Rendering/RenderUtils.h"
+#include <iostream>
 
 #include "Entity/Components/TransformComponent.h"
 #include "Physics/Components/CollisionComponent.h"
+#include "Rendering/RenderUtils.h"
 #include "Rendering/Components/SpriteComponent.h"
 
 namespace game
@@ -17,18 +18,15 @@ flecs::entity gTowerPrefab{};
 
 void Tower::InitTower(flecs::world& ecs)
 {
-	// Register components QUESTION:why we didnt have to do it before?
-	ecs.component<CollisionComponent>();
-
-	ecs.system<>("PlaceNewTower")
-			.kind(flecs::OnUpdate)
-			.iter(PlaceNewTower);
-
 	gTowerPrefab = ecs.prefab<>("towerPrefab")
 			.add<TowerTag>()
 			.override<TransformComponent>() // Need `override` because the data is not gonna be shared.
 			.override<CollisionComponent>() // This can be changed to `set` once `CollisionComponent` has been changed to only have the size of the sprite.
 			.override<SpriteComponent>();
+
+	ecs.system("PlaceNewTower")
+			.kind(flecs::OnUpdate)
+			.iter(PlaceNewTower);
 
 	// Entity A + collisionComponent
 	// Entity B + collisionComponent
@@ -56,13 +54,15 @@ void PlaceNewTower(flecs::iter& iter)
 		return;
 
 	const Vector2 mousePosition = GetMousePosition();
-	const int spriteIndex = GetRandomValue(0, 3);
-
-	//it doesnt account for the scale, hardcoding it really starts to bite me in the ass - redo asap
 	const Rectangle newTowerRect{mousePosition.x, mousePosition.y, TOWER_WIDTH * 2, TOWER_HEIGHT * 2};
 
 	bool hasCollided{false};
+
 	iter.world().each<CollisionComponent>([&hasCollided, &newTowerRect](CollisionComponent& collisionComponent) {
+		// Avoid computing a collision detection if we already detected a collision.
+		if (hasCollided)
+			return;
+
 		if (CheckCollisionRecs(newTowerRect, collisionComponent.mCollisionRect))
 			hasCollided = true;
 	});
@@ -74,10 +74,14 @@ void PlaceNewTower(flecs::iter& iter)
 	//TODO:redo collision component to only have dimension and use transform as a starting point of a rect
 	//it doesnt account for the scale, hardcoding it really starts to bite me in the ass - redo asap!!
 
-	iter.world().entity()
-			.is_a(gTowerPrefab) // With `is_a`, we're making an instance of gTowerPrefab, and so we get all its components.
+	const int spriteIndex = GetRandomValue(0, 3);
+
+	static int index = 0;
+	const std::string towerName = std::string("tower" + std::to_string(index++));
+	iter.world().entity(towerName.c_str())
+			.is_a(gTowerPrefab)
 			.set<TransformComponent>({mousePosition.x, mousePosition.y})
-			.set<CollisionComponent>({mousePosition.x, mousePosition.y, TOWER_WIDTH * 2, TOWER_HEIGHT * 2})
+			.set<CollisionComponent>({newTowerRect})
 			.set<SpriteComponent>({RenderUtils::LoadMyTexture("buildings/towers_spritesheet_16x32_4x1.png"),
 								   {(float)spriteIndex * TOWER_WIDTH, 0, TOWER_WIDTH, TOWER_HEIGHT},
 								   {TOWER_WIDTH * 2, TOWER_HEIGHT * 2}, {0, 0}, 0});
