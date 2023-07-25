@@ -3,7 +3,6 @@
 #include <raymath.h>
 
 #include "Rendering/RenderUtils.h"
-#include "Physics/PhysicsUtils.h"
 #include "Rendering/Components/TextureComponent.h"
 #include "Rendering/Components/AnimationComponent.h"
 #include "Map/Map.h"
@@ -75,7 +74,7 @@ void Character::CharacterUpdate(flecs::entity characterEntity, TransformComponen
 
 		// Iterate over all entities that have a CollisionComponent
 		characterEntity.world().each<CollisionComponent>([&](flecs::entity e, CollisionComponent& otherCollisionComponent) {
-			if (e != characterEntity && PhysicsUtils::CheckCollisionRecs(newCharacterRect, otherCollisionComponent.mCollisionRect))
+			if (e != characterEntity && CheckCollisionRecs(newCharacterRect, otherCollisionComponent.mCollisionRect))
 			{
 				isCollision = true;
 			}
