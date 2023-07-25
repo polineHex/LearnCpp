@@ -6,6 +6,7 @@
 #include "Physics/Components/CollisionComponent.h"
 #include "Rendering/RenderUtils.h"
 #include "Rendering/Components/SpriteComponent.h"
+#include "Globals.h"
 
 namespace game
 {
@@ -21,31 +22,13 @@ void Tower::InitTower(flecs::world& ecs)
 	gTowerPrefab = ecs.prefab<>("towerPrefab")
 			.add<TowerTag>()
 			.override<TransformComponent>() // Need `override` because the data is not gonna be shared.
-			.override<CollisionComponent>() // This can be changed to `set` once `CollisionComponent` has been changed to only have the size of the sprite.
+			.set<CollisionComponent>({Vector2{TOWER_WIDTH*ENTITY_SCALE, TOWER_HEIGHT*ENTITY_SCALE}}) 
 			.override<SpriteComponent>();
 
 	ecs.system("PlaceNewTower")
 			.kind(flecs::OnUpdate)
 			.iter(PlaceNewTower);
 
-	// Entity A + collisionComponent
-	// Entity B + collisionComponent
-
-//	ecs.system<CollisionComponent>()
-//	        .iter([](flecs::iter iter, CollisionComponent* collisionComponent) {
-//				// You get an array of all the CollisionComponent.
-//				// CollisionComponent for entity A + B.
-//				for (int i = 0; i < iter.count(); ++i)
-//				{
-//					CollisionComponent collisionComponent1 = collisionComponent[i];
-//				}
-//			});
-//
-//	ecs.system<CollisionComponent>()
-//	        .each([](flecs::entity entity, CollisionComponent& collisionComponent) {
-//				// You get the reference to CollisionComponent for the entity you're given.
-//				// This means you only have one CollisionComponent.
-//			});
 }
 
 void PlaceNewTower(flecs::iter& iter)
@@ -54,25 +37,26 @@ void PlaceNewTower(flecs::iter& iter)
 		return;
 
 	const Vector2 mousePosition = GetMousePosition();
-	const Rectangle newTowerRect{mousePosition.x, mousePosition.y, TOWER_WIDTH * 2, TOWER_HEIGHT * 2};
+	const TransformComponent transformComponent{Vector2{mousePosition.x, mousePosition.y}, Vector2{TOWER_WIDTH * ENTITY_SCALE, TOWER_HEIGHT*ENTITY_SCALE}};
+	const Rectangle newTowerRect{transformComponent.mPosition.x, transformComponent.mPosition.y, transformComponent.mScale.x, transformComponent.mScale.y};
 
 	bool hasCollided{false};
 
-	iter.world().each<CollisionComponent>([&hasCollided, &newTowerRect](CollisionComponent& collisionComponent) {
+	//Replaced collision component for now with transform component, same issue as Character.cpp checking on collision on update, cause cant pass two components in query
+	//Assuming at this point, that collision rect is the same as transform rect
+
+	iter.world().each<TransformComponent>([&hasCollided, &newTowerRect](TransformComponent& otherTransformComponent) {
 		// Avoid computing a collision detection if we already detected a collision.
 		if (hasCollided)
 			return;
 
-		if (CheckCollisionRecs(newTowerRect, collisionComponent.mCollisionRect))
+		const Rectangle otherRect = {otherTransformComponent.mPosition.x, otherTransformComponent.mPosition.y, otherTransformComponent.mScale.x, otherTransformComponent.mScale.y};
+		if (CheckCollisionRecs(newTowerRect, otherRect))
 			hasCollided = true;
 	});
 
 	if (hasCollided)
 		return;
-
-	//If no collision was detected, we create a tower
-	//TODO:redo collision component to only have dimension and use transform as a starting point of a rect
-	//it doesnt account for the scale, hardcoding it really starts to bite me in the ass - redo asap!!
 
 	const int spriteIndex = GetRandomValue(0, 3);
 
@@ -80,11 +64,10 @@ void PlaceNewTower(flecs::iter& iter)
 	const std::string towerName = std::string("tower" + std::to_string(index++));
 	iter.world().entity(towerName.c_str())
 			.is_a(gTowerPrefab)
-			.set<TransformComponent>({mousePosition.x, mousePosition.y})
-			.set<CollisionComponent>({newTowerRect})
-			.set<SpriteComponent>({RenderUtils::LoadMyTexture("buildings/towers_spritesheet_16x32_4x1.png"),
+			.set<TransformComponent>(transformComponent)
+			.set<SpriteComponent>({renderUtils::LoadMyTexture("buildings/towers_spritesheet_16x32_4x1.png"),
 								   {(float)spriteIndex * TOWER_WIDTH, 0, TOWER_WIDTH, TOWER_HEIGHT},
-								   {TOWER_WIDTH * 2, TOWER_HEIGHT * 2}, {0, 0}, 0});
+								   {transformComponent.mScale.x,transformComponent.mScale.x}, {0, 0}, 0});
 }
 
 

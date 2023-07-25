@@ -1,13 +1,16 @@
 #include "RenderUtils.h"
 
-#include <map>
+#include <unordered_map>
 
 namespace game
 {
 
-static std::unordered_map<std::string, Texture2D> textureMap{};
+namespace renderUtils
+{
 
-Texture2D RenderUtils::LoadMyTexture(const std::string& texturePath)
+std::unordered_map<std::string, Texture2D> textureMap{};
+
+Texture2D LoadMyTexture(const std::string& texturePath)
 {
 	if (textureMap.find(texturePath) != textureMap.end())
 		return textureMap[texturePath];
@@ -27,4 +30,5 @@ Texture2D RenderUtils::LoadMyTexture(const std::string& texturePath)
 	return texture;
 }
 
+}// namespace renderUtils
 }// namespace game
