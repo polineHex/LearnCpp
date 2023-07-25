@@ -6,19 +6,22 @@
 #include "Rendering/Components/TextureComponent.h"
 #include "Rendering/Components/AnimationComponent.h"
 #include "Map/Map.h"
+#include "Globals.h"
 
 namespace game
 {
 
 void Character::InitCharacter(flecs::world& ecs)
 {
-	//TODO: define components first, and then assign them, to link relevant data (texture width)
+	//auto q = ecs.query<CollisionComponent, TransformComponent>();
+
+	const TransformComponent transformComponent{Vector2{100, 100}, Vector2Scale(Vector2{CHARACTER_WIDTH, CHARACTER_HEIGHT}, ENTITY_SCALE)};
 	ecs.entity("Player")
 			.add<CharacterTag>()
-			.set<TransformComponent>({100, 100})
-			.set<CollisionComponent>({100, 100, CHARACTER_WIDTH * 2, CHARACTER_HEIGHT * 2})
+			.emplace<TransformComponent>(transformComponent)
+			.set<CollisionComponent>({transformComponent.mScale})
 			.set<SpriteComponent>({renderUtils::LoadMyTexture("characters/knight_spritesheet_16x16_8x2.png"), 
-									{0, 0, CHARACTER_WIDTH, CHARACTER_HEIGHT}, {CHARACTER_WIDTH * 2, CHARACTER_HEIGHT * 2}, {0, 0}, 5})
+									{0, 0, CHARACTER_WIDTH, CHARACTER_HEIGHT}, {transformComponent.mScale.x,transformComponent.mScale.x}, {0, 0}, 5})
 			.emplace<AnimationComponent>(5, 0.1f, 0.0f, 0)
 			.emplace<AnimationStateComponent>(AnimationName::IDLE);
 	ecs.system<TransformComponent, AnimationStateComponent, CollisionComponent>()
@@ -31,7 +34,6 @@ void Character::CharacterUpdate(flecs::entity characterEntity, TransformComponen
 								AnimationStateComponent& animationStateComponent, CollisionComponent& collisionComponent)
 {
 	Vector2 direction{};
-	int frame{};
 
 	if (IsKeyDown(KEY_A))
 		direction.x -= 1.0;
@@ -53,34 +55,51 @@ void Character::CharacterUpdate(flecs::entity characterEntity, TransformComponen
 	animationStateComponent.mCurrentAnimName = AnimationName::RUN;
 	
 	//Changing orientation of the character depending on where it's moving
-	direction.x < 0.f ? transformComponent.mScale.x = -1.f : transformComponent.mScale.x = 1.f;
+	direction.x < 0.f ? transformComponent.mScale.x = -fabs(transformComponent.mScale.x) : transformComponent.mScale.x = fabs(transformComponent.mScale.x);
 	
 	//Check for map bounds
-	flecs::entity mapEntity = characterEntity.world().component<MapTag>().target<MapTag>();
-	Texture2D mapTexture = mapEntity.get_ref<TextureComponent>()->mTexture;
+	const flecs::entity mapEntity = characterEntity.world().component<MapTag>().target<MapTag>();
+	const Texture2D mapTexture = mapEntity.get_ref<TextureComponent>()->mTexture;
 
-	// Calculate new position
-	Vector2 newPosition = Vector2Add(transformComponent.mPosition, Vector2Scale(Vector2Normalize(direction), CHARACTER_SPEED * GetFrameTime()));
+	const Vector2 newPosition = Vector2Add(transformComponent.mPosition, Vector2Scale(Vector2Normalize(direction), CHARACTER_SPEED * GetFrameTime()));
 
 	// Check if the new position is within map boundaries 
-	//QUESTION: if i want this as function, would it be a system on map? how do i then call one?
+	//TODO: Write a function to do it in map namespace? if i find myself using same code for towers/enemies
 	if (newPosition.x >= 0 && newPosition.x <= mapTexture.width-CHARACTER_WIDTH &&
 		newPosition.y >= 0 && newPosition.y <= mapTexture.height-CHARACTER_HEIGHT)
 	{
-		  // Create a new rectangle that represents where the character would move
-		Rectangle newCharacterRect = {newPosition.x, newPosition.y, collisionComponent.mCollisionRect.width, collisionComponent.mCollisionRect.height};
+		const Rectangle newCharacterRect {newPosition.x, newPosition.y, collisionComponent.mRectScale.x, collisionComponent.mRectScale.y};
 
-		bool isCollision = false;
+		bool hasCollided{false};
+		//auto q = ecs.query<CollisionComponent, TransformComponent>();
+		//q.each([&hasCollided,&newCharacterRect, &characterEntity](flecs::entity e, CollisionComponent& otherCollisionComponent, TransformComponent& otherTransformComponent){
+		//	// Avoid computing a collision detection if we already detected a collision.
+		//	if (hasCollided)
+		//		return;
+		//	
+		//	const Rectangle otherRect {otherTransformComponent.mPosition.x, otherTransformComponent.mPosition.y, otherCollisionComponent.mRectScale.x, otherCollisionComponent.mRectScale.y};
+		//	if (e != characterEntity && CheckCollisionRecs(newCharacterRect, otherRect))
+		//	{
+		//		hasCollided = true;
+		//	}
+		//});
 
-		// Iterate over all entities that have a CollisionComponent
-		characterEntity.world().each<CollisionComponent>([&](flecs::entity e, CollisionComponent& otherCollisionComponent) {
-			if (e != characterEntity && CheckCollisionRecs(newCharacterRect, otherCollisionComponent.mCollisionRect))
+		//QUESTION: I couldnt pass two components into .each query. I tried to create query and use it, it leads to a crash. Apparently I cant create a query inside a system? 
+		//passing a query from outside seems really complicated? Is there a better way to do each with entities that should have several components?
+		//atm I just use transform scale, since it is the same (for rectangle collision) as collision component would be. 
+
+		characterEntity.world().each<TransformComponent>([&hasCollided, &newCharacterRect, &characterEntity](flecs::entity e, TransformComponent& otherTransformComponent) {
+			if (hasCollided)
+				return;
+			const Rectangle otherRect{otherTransformComponent.mPosition.x, otherTransformComponent.mPosition.y, otherTransformComponent.mScale.x, otherTransformComponent.mScale.y};
+			if (e != characterEntity && CheckCollisionRecs(newCharacterRect, otherRect))
 			{
-				isCollision = true;
+				hasCollided = true;
 			}
 		});
 
-		if (!isCollision)
+
+		if (!hasCollided)
 		{
 			transformComponent.mPosition = newPosition;
 		}

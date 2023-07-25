@@ -69,7 +69,7 @@ void Renderer::DrawTextures(flecs::entity entity, const TransformComponent& tran
 void Renderer::DrawSprites(flecs::entity entity, const TransformComponent& transformComponent, const SpriteComponent& spriteComponent)
 {
 	DrawTexturePro(spriteComponent.mTexture,
-				   {spriteComponent.mSource.x, spriteComponent.mSource.y, spriteComponent.mSource.width * transformComponent.mScale.x, spriteComponent.mSource.height},
+				   {spriteComponent.mSource.x, spriteComponent.mSource.y, copysignf(spriteComponent.mSource.width, transformComponent.mScale.x), spriteComponent.mSource.height},
 				   {transformComponent.mPosition.x, transformComponent.mPosition.y, spriteComponent.mHeight.x, spriteComponent.mHeight.y},
 				   spriteComponent.mOrigin, 0, WHITE);
 }

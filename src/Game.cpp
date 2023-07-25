@@ -31,9 +31,8 @@ static void RegisterComponents(const flecs::world& ecs)
 
 	// Game components/structs.
 
-	// Register components QUESTION:why we didnt have to do it before?
 	ecs.component<CollisionComponent>()
-			.member<Rectangle>("mCollisionRect");
+			.member<Vector2>("mRectScale");
 
 	ecs.component<TransformComponent>()
 			.member<Vector2>("mPosition")

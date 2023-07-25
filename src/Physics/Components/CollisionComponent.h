@@ -6,9 +6,9 @@ namespace game
 {
 
 struct CollisionComponent {
-	Rectangle mCollisionRect;
+	Vector2 mRectScale{};
 	
 	//TODO: Make different shapes
-	//TODO: split it into Vector2 and get position and scale from transform component
+
 };
 }// namespace game
