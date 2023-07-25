@@ -17,7 +17,7 @@ void Character::InitCharacter(flecs::world& ecs)
 			.add<CharacterTag>()
 			.set<TransformComponent>({100, 100})
 			.set<CollisionComponent>({100, 100, CHARACTER_WIDTH * 2, CHARACTER_HEIGHT * 2})
-			.set<SpriteComponent>({RenderUtils::LoadMyTexture("characters/knight_spritesheet_16x16_8x2.png"), 
+			.set<SpriteComponent>({renderUtils::LoadMyTexture("characters/knight_spritesheet_16x16_8x2.png"), 
 									{0, 0, CHARACTER_WIDTH, CHARACTER_HEIGHT}, {CHARACTER_WIDTH * 2, CHARACTER_HEIGHT * 2}, {0, 0}, 5})
 			.emplace<AnimationComponent>(5, 0.1f, 0.0f, 0)
 			.emplace<AnimationStateComponent>(AnimationName::IDLE);

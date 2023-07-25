@@ -82,7 +82,7 @@ void PlaceNewTower(flecs::iter& iter)
 			.is_a(gTowerPrefab)
 			.set<TransformComponent>({mousePosition.x, mousePosition.y})
 			.set<CollisionComponent>({newTowerRect})
-			.set<SpriteComponent>({RenderUtils::LoadMyTexture("buildings/towers_spritesheet_16x32_4x1.png"),
+			.set<SpriteComponent>({renderUtils::LoadMyTexture("buildings/towers_spritesheet_16x32_4x1.png"),
 								   {(float)spriteIndex * TOWER_WIDTH, 0, TOWER_WIDTH, TOWER_HEIGHT},
 								   {TOWER_WIDTH * 2, TOWER_HEIGHT * 2}, {0, 0}, 0});
 }

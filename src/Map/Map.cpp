@@ -15,7 +15,7 @@ void CreateMap(flecs::world& ecs)
 {
 	const flecs::entity mapEntity = ecs.entity("Map")
 		.set<TransformComponent>({0, 0})
-		.emplace<TextureComponent>(RenderUtils::LoadMyTexture("map/map.png"), 0);
+		.emplace<TextureComponent>(renderUtils::LoadMyTexture("map/map.png"), 0);
 
 	// Add a pair on the flecs world (MapTag, mapEntity).
 	ecs.add<MapTag>(mapEntity);
