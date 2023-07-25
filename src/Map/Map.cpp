@@ -1,8 +1,9 @@
 #include "Map.h"
 
 #include "Rendering/RenderUtils.h"
-#include "Entity/Components/TransformComponent.h"
 #include "Rendering/Components/TextureComponent.h"
+#include "Entity/Components/TransformComponent.h"
+
 
 namespace game
 {

@@ -1,9 +1,9 @@
 #pragma once
 
 #include <flecs.h>
-#include "Rendering/RenderUtils.h"
-#include "Globals.h"
 
+#include "Globals.h"
+#include "Rendering/RenderUtils.h"
 #include "Rendering/Renderer.h"
 
 namespace game
