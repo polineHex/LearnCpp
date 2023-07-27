@@ -1,5 +1,7 @@
 #include "Renderer.h"
 
+#include <math.h>
+
 #include <raylib.h>
 #include <rlImGui.h>
 
