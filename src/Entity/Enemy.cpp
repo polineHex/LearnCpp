@@ -55,8 +55,7 @@ void SpawnNewEnemy(flecs::iter& iter)
 
 	lastSpawnTime = currentTime;
 
-	const Vector2 mousePosition = GetMousePosition();
-	const TransformComponent transformComponent{Vector2{mousePosition.x, mousePosition.y}, Vector2{ENEMY_WIDTH * ENTITY_SCALE, ENEMY_HEIGHT * ENTITY_SCALE}};
+	const TransformComponent transformComponent{{0.0f, 0.0f}, {ENEMY_WIDTH * ENTITY_SCALE, ENEMY_HEIGHT * ENTITY_SCALE}};
 	const Rectangle newGoblinRect{transformComponent.mPosition.x, transformComponent.mPosition.y, transformComponent.mScale.x, transformComponent.mScale.y};
 
 	bool hasCollided{false};
