@@ -10,13 +10,17 @@
 
 namespace game
 {
+// TODO: namespace entity
+// void InitEnemy(...);
 
+//TODO: get all this in a file and read from it
 const int ENEMY_WIDTH = 16;
 const int ENEMY_HEIGHT = 16;
 const float ENEMY_SPEED = 150.f;
 
 struct EnemyTag {
 };
+
 
 class Enemy
 {

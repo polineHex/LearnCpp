@@ -86,6 +86,8 @@ void Character::CharacterUpdate(flecs::entity characterEntity, TransformComponen
 		Rectangle otherRect{};
 		auto filter = characterEntity.world().filter<CollisionComponent, TransformComponent>();
 
+		//TODO: change to iter
+		//TODO: share this functionality between enemy and character
 		filter.each([&hasCollided, &newCharacterRect, &otherRect, &characterEntity](flecs::entity e, CollisionComponent& otherCollisionComponent, TransformComponent& otherTransformComponent) {
 			// Avoid computing a collision detection if we already detected a collision.
 			if (hasCollided)
@@ -95,6 +97,7 @@ void Character::CharacterUpdate(flecs::entity characterEntity, TransformComponen
 			if (e != characterEntity && CheckCollisionRecs(newCharacterRect, otherRect))
 			{
 				hasCollided = true;
+				return;
 			}
 		});
 

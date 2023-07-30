@@ -23,16 +23,15 @@ void Enemy::InitEnemy(flecs::world& ecs)
 	gGoblinPrefab = ecs.prefab<>("goblinPrefab")
 							.add<EnemyTag>()
 							.override<TransformComponent>()
-							.override<VelocityComponent>()
 							.set<CollisionComponent>({ENEMY_WIDTH * ENTITY_SCALE, ENEMY_HEIGHT * ENTITY_SCALE})
-							.set<VelocityComponent>({{0, 0}, ENEMY_SPEED})
-							.set<SpriteComponent>({renderUtils::LoadMyTexture("characters/goblin_spritesheet_16x16_8x2.png"),
+							.set_override<VelocityComponent>({{0, 0}, ENEMY_SPEED})
+							.set_override<SpriteComponent>({renderUtils::LoadMyTexture("characters/goblin_spritesheet_16x16_8x2.png"),
 												   {0, 0, ENEMY_WIDTH, ENEMY_HEIGHT},
 												   {transformComponent.mScale.x, transformComponent.mScale.x},
 												   {0, 0},
 												   5})
-							.emplace<AnimationComponent>(5, 0.1f, 0.0f, 0)
-							.emplace<AnimationStateComponent>(AnimationName::IDLE);
+							.emplace_override<AnimationComponent>(5, 0.1f, 0.0f, 0)
+							.emplace_override<AnimationStateComponent>(AnimationName::IDLE);
 
 	ecs.system("SpawnNewEnemy")
 			.kind(flecs::OnUpdate)
@@ -50,7 +49,7 @@ void SpawnNewEnemy(flecs::iter& iter)
 	static float lastSpawnTime = 0.0f;
 	float currentTime = GetTime();
 
-	if (currentTime - lastSpawnTime < 5.0f)// Spawn a new enemy every 5 seconds
+	if (currentTime - lastSpawnTime < 1.0f)// Spawn a new enemy every 5 seconds
 		return;
 
 	lastSpawnTime = currentTime;
@@ -59,33 +58,36 @@ void SpawnNewEnemy(flecs::iter& iter)
 	const Rectangle newGoblinRect{transformComponent.mPosition.x, transformComponent.mPosition.y, transformComponent.mScale.x, transformComponent.mScale.y};
 
 	bool hasCollided{false};
-	Rectangle otherRect{};
-	auto filter = iter.world().filter<CollisionComponent, TransformComponent>();
+	
+	//Save world for efficiency 
+	flecs::world ecs = iter.world();
+	auto filter = ecs.filter<CollisionComponent, TransformComponent>();
 
-	filter.iter([&hasCollided, &newGoblinRect, &otherRect](flecs::iter& it, CollisionComponent* collisionComponents, TransformComponent* transformComponents) {
+	filter.iter([&hasCollided, &newGoblinRect](flecs::iter& it, CollisionComponent* collisionComponents, TransformComponent* transformComponents) {
 		if (hasCollided)
 			return;
 		for (int i = 0; i < it.count(); ++i)
 		{
 			auto collisionComponent = collisionComponents[i];
 			auto transformComponent = transformComponents[i];
-			otherRect = {transformComponent.mPosition.x, transformComponent.mPosition.y, collisionComponent.mRectScale.x, collisionComponent.mRectScale.y};
+			const Rectangle otherRect{transformComponent.mPosition.x, transformComponent.mPosition.y, collisionComponent.mRectScale.x, collisionComponent.mRectScale.y};
 
 			if (CheckCollisionRecs(newGoblinRect, otherRect))
+			{
 				hasCollided = true;
+				return;
+			}
 		}
 	});
 
 	if (hasCollided)
 		return;
 
-	const int spriteIndex = GetRandomValue(0, 3);
-
 	static int index = 0;
 	const std::string goblinName = std::string("goblin" + std::to_string(index++));
-	iter.world().entity(goblinName.c_str())
+	ecs.entity(goblinName.c_str())
 			.is_a(gGoblinPrefab)
-			.set<TransformComponent>(transformComponent);			
+			.set<TransformComponent>(transformComponent);
 }
 
 
@@ -135,18 +137,27 @@ void Enemy::EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transform
 		Rectangle otherRect{};
 		auto filter = enemyEntity.world().filter<CollisionComponent, TransformComponent>();
 
-		filter.each([&hasCollided, &newEntityRect, &otherRect, &enemyEntity](flecs::entity e, CollisionComponent& otherCollisionComponent, TransformComponent& otherTransformComponent) {
+		filter.iter([&hasCollided, &newEntityRect, &otherRect, &enemyEntity](flecs::iter& it, CollisionComponent* collisionComponents, TransformComponent* transformComponents) {
 			// Avoid computing a collision detection if we already detected a collision.
 			if (hasCollided)
 				return;
 
-			otherRect = {otherTransformComponent.mPosition.x, otherTransformComponent.mPosition.y, otherCollisionComponent.mRectScale.x, otherCollisionComponent.mRectScale.y};
-			if (e != enemyEntity && CheckCollisionRecs(newEntityRect, otherRect))
+			for (int i = 0; i < it.count(); ++i)
 			{
-				hasCollided = true;
+				auto entity = it.entity(i);
+				if (entity == enemyEntity)
+					continue;
+				auto collisionComponent = collisionComponents[i];
+				auto transformComponent = transformComponents[i];
+				
+				const Rectangle otherRect = {transformComponent.mPosition.x, transformComponent.mPosition.y, collisionComponent.mRectScale.x, collisionComponent.mRectScale.y};
+				if (CheckCollisionRecs(newEntityRect, otherRect))
+				{
+					hasCollided = true;
+				}
 			}
+			
 		});
-
 
 		if (!hasCollided)
 		{
