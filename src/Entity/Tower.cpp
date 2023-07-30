@@ -41,18 +41,27 @@ void PlaceNewTower(flecs::iter& iter)
 	const Rectangle newTowerRect{transformComponent.mPosition.x, transformComponent.mPosition.y, transformComponent.mScale.x, transformComponent.mScale.y};
 
 	bool hasCollided{false};
-
-	//Replaced collision component for now with transform component, same issue as Character.cpp checking on collision on update, cause cant pass two components in query
-	//Assuming at this point, that collision rect is the same as transform rect
-
-	iter.world().each<TransformComponent>([&hasCollided, &newTowerRect](TransformComponent& otherTransformComponent) {
-		// Avoid computing a collision detection if we already detected a collision.
+	Rectangle otherRect{};
+	auto filter = iter.world().filter<CollisionComponent, TransformComponent>();
+	
+	filter.iter([&hasCollided, &newTowerRect, &otherRect](flecs::iter& it, CollisionComponent* collisionComponents, TransformComponent* transformComponents) 
+	{
 		if (hasCollided)
 			return;
+		for (int i = 0; i < it.count(); ++i)
+		{
+		auto collisionComponent = collisionComponents[i];
+		auto transformComponent = transformComponents[i];
 
-		const Rectangle otherRect = {otherTransformComponent.mPosition.x, otherTransformComponent.mPosition.y, otherTransformComponent.mScale.x, otherTransformComponent.mScale.y};
+		//QUESTION: how do i check that i am not checking the collision "with itself", aka i am checking Object
+		//with all other Objects, so, I am bound to get collision with "itself"?
+
+		//QUESTION: I didnt want to create a variable every iteration in a for loop, afaik, creating it many times is worse than having non-const being passed?
+		otherRect = {transformComponent.mPosition.x, transformComponent.mPosition.y, collisionComponent.mRectScale.x, collisionComponent.mRectScale.y};
+		
 		if (CheckCollisionRecs(newTowerRect, otherRect))
 			hasCollided = true;
+		}
 	});
 
 	if (hasCollided)
