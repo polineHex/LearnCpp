@@ -57,13 +57,12 @@ void Enemy::EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transform
 	//Changing animation row (aka switching to different animation) when running
 	animationStateComponent.mCurrentAnimName = AnimationName::RUN;
 
-	//Changing orientation of the enemy depending on where it's moving
-	bool oldDirectionSign = oldDirection.x < 0.f;
-	bool newDirectionSign = velocityComponent.mDirection.x < 0.f;
-	if (oldDirectionSign != newDirectionSign)
+	//Flipping orientation of the character if direction sign flipped as well
+	if (oldDirection.x != velocityComponent.mDirection.x)
 	{
-		transformComponent.mScale.x = newDirectionSign ? -fabs(transformComponent.mScale.x) : fabs(transformComponent.mScale.x);
+		transformComponent.mScale.x = (velocityComponent.mDirection.x < 0.f) ? -fabs(transformComponent.mScale.x) : fabs(transformComponent.mScale.x);
 	}
+
 	//Check for map bounds
 	const flecs::entity mapEntity = enemyEntity.world().component<MapTag>().target<MapTag>();
 	const Texture2D mapTexture = mapEntity.get_ref<TextureComponent>()->mTexture;
