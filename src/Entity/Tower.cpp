@@ -22,7 +22,7 @@ void Tower::InitTower(flecs::world& ecs)
 	gTowerPrefab = ecs.prefab<>("towerPrefab")
 			.add<TowerTag>()
 			.override<TransformComponent>() // Need `override` because the data is not gonna be shared.
-			.set<CollisionComponent>({Vector2{TOWER_WIDTH*ENTITY_SCALE, TOWER_HEIGHT*ENTITY_SCALE}}) 
+			.set<CollisionComponent>({TOWER_WIDTH * ENTITY_SCALE, TOWER_HEIGHT * ENTITY_SCALE}) 
 			.override<SpriteComponent>();
 
 	ecs.system("PlaceNewTower")
@@ -37,7 +37,7 @@ void PlaceNewTower(flecs::iter& iter)
 		return;
 
 	const Vector2 mousePosition = GetMousePosition();
-	const TransformComponent transformComponent{Vector2{mousePosition.x, mousePosition.y}, Vector2{TOWER_WIDTH * ENTITY_SCALE, TOWER_HEIGHT*ENTITY_SCALE}};
+	const TransformComponent transformComponent{Vector2{mousePosition.x, mousePosition.y}, Vector2{TOWER_WIDTH * ENTITY_SCALE, TOWER_HEIGHT * ENTITY_SCALE}};
 	const Rectangle newTowerRect{transformComponent.mPosition.x, transformComponent.mPosition.y, transformComponent.mScale.x, transformComponent.mScale.y};
 
 	bool hasCollided{false};
