@@ -38,6 +38,10 @@ void PlaceNewTower(flecs::iter& iter)
 
 	const Vector2 mousePosition = GetMousePosition();
 	const TransformComponent transformComponent{Vector2{mousePosition.x, mousePosition.y}, Vector2{TOWER_WIDTH * ENTITY_SCALE, TOWER_HEIGHT * ENTITY_SCALE}};
+	
+	//QUESTION: I am using transform here, but should get the data from collision component. Considering it's always same, should I add global const parameters for it?
+	//what's the best way to "reuse it", considering i will in future have a collider that's different than sprite rect (a sphere on a slime)
+
 	const Rectangle newTowerRect{transformComponent.mPosition.x, transformComponent.mPosition.y, transformComponent.mScale.x, transformComponent.mScale.y};
 
 	bool hasCollided{false};

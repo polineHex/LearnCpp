@@ -11,29 +11,85 @@
 
 namespace game
 {
+//QUESTION: would i declare all private static functions with forward declaratiobn?
+
+static void SpawnNewEnemy(flecs::iter& iter);
+flecs::entity gGoblinPrefab{};
 
 void Enemy::InitEnemy(flecs::world& ecs)
 {
 	const TransformComponent transformComponent{Vector2{500, 500}, Vector2Scale(Vector2{ENEMY_WIDTH, ENEMY_HEIGHT}, ENTITY_SCALE)};
-	ecs.entity("Goblin")
-			.add<EnemyTag>()
-			.emplace<TransformComponent>(transformComponent)
-			.set<CollisionComponent>({transformComponent.mScale})
-			.set<VelocityComponent>({{0, 0}, ENEMY_SPEED})
-			.set<SpriteComponent>({renderUtils::LoadMyTexture("characters/goblin_spritesheet_16x16_8x2.png"),
-								   {0, 0, ENEMY_WIDTH, ENEMY_HEIGHT},
-								   {transformComponent.mScale.x, transformComponent.mScale.x},
-								   {0, 0},
-								   5})
-			.emplace<AnimationComponent>(5, 0.1f, 0.0f, 0)
-			.emplace<AnimationStateComponent>(AnimationName::IDLE);
 	
+	gGoblinPrefab = ecs.prefab<>("goblinPrefab")
+							.add<EnemyTag>()
+							.override<TransformComponent>()
+							.override<VelocityComponent>()
+							.set<CollisionComponent>({ENEMY_WIDTH * ENTITY_SCALE, ENEMY_HEIGHT * ENTITY_SCALE})
+							.set<VelocityComponent>({{0, 0}, ENEMY_SPEED})
+							.set<SpriteComponent>({renderUtils::LoadMyTexture("characters/goblin_spritesheet_16x16_8x2.png"),
+												   {0, 0, ENEMY_WIDTH, ENEMY_HEIGHT},
+												   {transformComponent.mScale.x, transformComponent.mScale.x},
+												   {0, 0},
+												   5})
+							.emplace<AnimationComponent>(5, 0.1f, 0.0f, 0)
+							.emplace<AnimationStateComponent>(AnimationName::IDLE);
+
+	ecs.system("SpawnNewEnemy")
+			.kind(flecs::OnUpdate)
+			.iter(SpawnNewEnemy);
+
 	ecs.system<TransformComponent, AnimationStateComponent, CollisionComponent, VelocityComponent>()
 			.with<EnemyTag>()
 			.kind(flecs::OnUpdate)
 			.each(EnemyUpdate);
 	
 }
+
+void SpawnNewEnemy(flecs::iter& iter)
+{
+	static float lastSpawnTime = 0.0f;
+	float currentTime = GetTime();
+
+	if (currentTime - lastSpawnTime < 5.0f)// Spawn a new enemy every 5 seconds
+		return;
+
+	lastSpawnTime = currentTime;
+
+	const Vector2 mousePosition = GetMousePosition();
+	const TransformComponent transformComponent{Vector2{mousePosition.x, mousePosition.y}, Vector2{ENEMY_WIDTH * ENTITY_SCALE, ENEMY_HEIGHT * ENTITY_SCALE}};
+	const Rectangle newGoblinRect{transformComponent.mPosition.x, transformComponent.mPosition.y, transformComponent.mScale.x, transformComponent.mScale.y};
+
+	bool hasCollided{false};
+	Rectangle otherRect{};
+	auto filter = iter.world().filter<CollisionComponent, TransformComponent>();
+
+	filter.iter([&hasCollided, &newGoblinRect, &otherRect](flecs::iter& it, CollisionComponent* collisionComponents, TransformComponent* transformComponents) {
+		if (hasCollided)
+			return;
+		for (int i = 0; i < it.count(); ++i)
+		{
+			auto collisionComponent = collisionComponents[i];
+			auto transformComponent = transformComponents[i];
+			otherRect = {transformComponent.mPosition.x, transformComponent.mPosition.y, collisionComponent.mRectScale.x, collisionComponent.mRectScale.y};
+
+			if (CheckCollisionRecs(newGoblinRect, otherRect))
+				hasCollided = true;
+		}
+	});
+
+	if (hasCollided)
+		return;
+
+	const int spriteIndex = GetRandomValue(0, 3);
+
+	static int index = 0;
+	const std::string goblinName = std::string("goblin" + std::to_string(index++));
+	iter.world().entity(goblinName.c_str())
+			.is_a(gGoblinPrefab)
+			.set<TransformComponent>(transformComponent);			
+}
+
+
 
 void Enemy::EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transformComponent, AnimationStateComponent& animationStateComponent, 
 								CollisionComponent& collisionComponent, VelocityComponent& velocityComponent)
