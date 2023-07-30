@@ -24,6 +24,7 @@ void Character::InitCharacter(flecs::world& ecs)
 			.add<CharacterTag>()
 			.emplace<TransformComponent>(transformComponent)
 			.set<CollisionComponent>({transformComponent.mScale})
+			.set<VelocityComponent>({{0, 0}, CHARACTER_SPEED})
 			.set<SpriteComponent>({renderUtils::LoadMyTexture("characters/knight_spritesheet_16x16_8x2.png"), 
 									{0, 0, CHARACTER_WIDTH, CHARACTER_HEIGHT}, {transformComponent.mScale.x,transformComponent.mScale.x}, {0, 0}, 5})
 			.emplace<AnimationComponent>(5, 0.1f, 0.0f, 0)
@@ -31,28 +32,30 @@ void Character::InitCharacter(flecs::world& ecs)
 	
 	ecs.add<CharacterTag>(playerEntity);
 	
-	ecs.system<TransformComponent, AnimationStateComponent, CollisionComponent>()
+	ecs.system<TransformComponent, AnimationStateComponent, CollisionComponent, VelocityComponent>()
 			.with<CharacterTag>()
 			.kind(flecs::OnUpdate)
 			.each(CharacterUpdate);
 }
 
 void Character::CharacterUpdate(flecs::entity characterEntity, TransformComponent& transformComponent, 
-								AnimationStateComponent& animationStateComponent, CollisionComponent& collisionComponent)
+								AnimationStateComponent& animationStateComponent,
+								CollisionComponent& collisionComponent, VelocityComponent& velocityComponent)
 {
-	Vector2 direction{};
+	Vector2 oldDirection = velocityComponent.mDirection;
+	velocityComponent.mDirection = {0.0, 0.0};
 
 	if (IsKeyDown(KEY_A))
-		direction.x -= 1.0;
+		velocityComponent.mDirection.x -= 1.0;
 	else if (IsKeyDown(KEY_D))
-		direction.x += 1.0;
+		velocityComponent.mDirection.x += 1.0;
 
 	if (IsKeyDown(KEY_W))
-		direction.y -= 1.0;
+		velocityComponent.mDirection.y -= 1.0;
 	else if (IsKeyDown(KEY_S))
-		direction.y += 1.0;
+		velocityComponent.mDirection.y += 1.0;
 
-	if (Vector2Length(direction) == 0.0)
+	if (Vector2Length(velocityComponent.mDirection) == 0.0)
 	{
 		animationStateComponent.mCurrentAnimName = AnimationName::IDLE;
 		return;
@@ -61,22 +64,24 @@ void Character::CharacterUpdate(flecs::entity characterEntity, TransformComponen
 	//Changing animation row (aka switching to different animation) when running
 	animationStateComponent.mCurrentAnimName = AnimationName::RUN;
 	
-	//Changing orientation of the character depending on where it's moving
-	//TODO: copy check from enemies if the sign of direction.x is different, will need Velocity component too
-	direction.x < 0.f ? transformComponent.mScale.x = -fabs(transformComponent.mScale.x) : transformComponent.mScale.x = fabs(transformComponent.mScale.x);
-	
+	//Flipping orientation of the character if direction sign flipped as well
+	if (oldDirection.x != velocityComponent.mDirection.x)
+	{
+		transformComponent.mScale.x = (velocityComponent.mDirection.x < 0.f) ? -fabs(transformComponent.mScale.x) : fabs(transformComponent.mScale.x);
+	}
+
 	//Check for map bounds
 	const flecs::entity mapEntity = characterEntity.world().component<MapTag>().target<MapTag>();
 	const Texture2D mapTexture = mapEntity.get_ref<TextureComponent>()->mTexture;
 
-	const Vector2 newPosition = Vector2Add(transformComponent.mPosition, Vector2Scale(Vector2Normalize(direction), CHARACTER_SPEED * GetFrameTime()));
+	const Vector2 newPosition = Vector2Add(transformComponent.mPosition, Vector2Scale(Vector2Normalize(velocityComponent.mDirection), velocityComponent.mSpeed * GetFrameTime()));
 
 	// Check if the new position is within map boundaries 
 	//TODO: Write a function to do it in map namespace? if i find myself using same code for towers/enemies
 	if (newPosition.x >= 0 && newPosition.x <= mapTexture.width-CHARACTER_WIDTH &&
 		newPosition.y >= 0 && newPosition.y <= mapTexture.height-CHARACTER_HEIGHT)
 	{
-		const Rectangle newCharacterRect {newPosition.x, newPosition.y, collisionComponent.mRectScale.x, collisionComponent.mRectScale.y};
+		const Rectangle newCharacterRect{newPosition.x, newPosition.y, collisionComponent.mRectScale.x, collisionComponent.mRectScale.y};
 		bool hasCollided{false};
 		Rectangle otherRect{};
 		auto filter = characterEntity.world().filter<CollisionComponent, TransformComponent>();

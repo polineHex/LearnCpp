@@ -6,6 +6,7 @@
 #include "Rendering/Components/SpriteComponent.h"
 #include "Rendering/Components/AnimationStateComponent.h"
 #include "Physics/Components/CollisionComponent.h"
+#include "Physics/Components/VelocityComponent.h"
 
 namespace game
 {
@@ -24,7 +25,8 @@ public:
 	static void InitCharacter(flecs::world& ecs);
 private:
 	static void CharacterUpdate(flecs::entity characterEntity, TransformComponent& transformComponent, 
-								AnimationStateComponent& animationStateComponent, CollisionComponent& collisionComponent);
+								AnimationStateComponent& animationStateComponent,
+								CollisionComponent& collisionComponent, VelocityComponent& velocityComponent);
 };
 
 }// namespace game
