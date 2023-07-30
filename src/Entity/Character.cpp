@@ -26,7 +26,7 @@ void Character::InitCharacter(flecs::world& ecs)
 			.set<CollisionComponent>({transformComponent.mScale})
 			.set<VelocityComponent>({{0, 0}, CHARACTER_SPEED})
 			.set<SpriteComponent>({renderUtils::LoadMyTexture("characters/knight_spritesheet_16x16_8x2.png"), 
-									{0, 0, CHARACTER_WIDTH, CHARACTER_HEIGHT}, {transformComponent.mScale.x,transformComponent.mScale.x}, {0, 0}, 5})
+									{0, 0, CHARACTER_WIDTH, CHARACTER_HEIGHT}, {transformComponent.mScale.x,transformComponent.mScale.y}, {0, 0}, 5})
 			.emplace<AnimationComponent>(5, 0.1f, 0.0f, 0)
 			.emplace<AnimationStateComponent>(AnimationName::IDLE);
 	
@@ -43,19 +43,19 @@ void Character::CharacterUpdate(flecs::entity characterEntity, TransformComponen
 								CollisionComponent& collisionComponent, VelocityComponent& velocityComponent)
 {
 	Vector2 oldDirection = velocityComponent.mDirection;
-	velocityComponent.mDirection = {0.0, 0.0};
+	velocityComponent.mDirection = {0.0f, 0.0f};
 
 	if (IsKeyDown(KEY_A))
-		velocityComponent.mDirection.x -= 1.0;
+		velocityComponent.mDirection.x -= 1.0f;
 	else if (IsKeyDown(KEY_D))
-		velocityComponent.mDirection.x += 1.0;
+		velocityComponent.mDirection.x += 1.0f;
 
 	if (IsKeyDown(KEY_W))
-		velocityComponent.mDirection.y -= 1.0;
+		velocityComponent.mDirection.y -= 1.0f;
 	else if (IsKeyDown(KEY_S))
-		velocityComponent.mDirection.y += 1.0;
+		velocityComponent.mDirection.y += 1.0f;
 
-	if (Vector2Length(velocityComponent.mDirection) == 0.0)
+	if (Vector2Length(velocityComponent.mDirection) == 0.0f)
 	{
 		animationStateComponent.mCurrentAnimName = AnimationName::IDLE;
 		return;
@@ -67,7 +67,7 @@ void Character::CharacterUpdate(flecs::entity characterEntity, TransformComponen
 	//Flipping orientation of the character if direction sign flipped as well
 	if (oldDirection.x != velocityComponent.mDirection.x)
 	{
-		transformComponent.mScale.x = (velocityComponent.mDirection.x < 0.f) ? -fabs(transformComponent.mScale.x) : fabs(transformComponent.mScale.x);
+		transformComponent.mScale.x = (velocityComponent.mDirection.x < 0.0f) ? -fabs(transformComponent.mScale.x) : fabs(transformComponent.mScale.x);
 	}
 
 	//Check for map bounds

@@ -60,7 +60,7 @@ void Enemy::EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transform
 	//Flipping orientation of the character if direction sign flipped as well
 	if (oldDirection.x != velocityComponent.mDirection.x)
 	{
-		transformComponent.mScale.x = (velocityComponent.mDirection.x < 0.f) ? -fabs(transformComponent.mScale.x) : fabs(transformComponent.mScale.x);
+		transformComponent.mScale.x = (velocityComponent.mDirection.x < 0.0f) ? -fabs(transformComponent.mScale.x) : fabs(transformComponent.mScale.x);
 	}
 
 	//Check for map bounds
