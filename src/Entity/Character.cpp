@@ -13,10 +13,14 @@ namespace game
 
 void Character::InitCharacter(flecs::world& ecs)
 {
-	//auto q = ecs.query<CollisionComponent, TransformComponent>();
-
 	const TransformComponent transformComponent{Vector2{100, 100}, Vector2Scale(Vector2{CHARACTER_WIDTH, CHARACTER_HEIGHT}, ENTITY_SCALE)};
-	ecs.entity("Player")
+	
+	//QUESTION: do we put const in there, since we would change the components, and not the
+	//entity? Is entity stored as one object in memory, or it has links
+	//to addresses to each component and we cans afely put const here?
+	//(if yes, wouldnt it mean we always can put const?)
+
+	flecs::entity playerEntity = ecs.entity("Player")
 			.add<CharacterTag>()
 			.emplace<TransformComponent>(transformComponent)
 			.set<CollisionComponent>({transformComponent.mScale})
@@ -24,6 +28,9 @@ void Character::InitCharacter(flecs::world& ecs)
 									{0, 0, CHARACTER_WIDTH, CHARACTER_HEIGHT}, {transformComponent.mScale.x,transformComponent.mScale.x}, {0, 0}, 5})
 			.emplace<AnimationComponent>(5, 0.1f, 0.0f, 0)
 			.emplace<AnimationStateComponent>(AnimationName::IDLE);
+	
+	ecs.add<CharacterTag>(playerEntity);
+	
 	ecs.system<TransformComponent, AnimationStateComponent, CollisionComponent>()
 			.with<CharacterTag>()
 			.kind(flecs::OnUpdate)
@@ -55,6 +62,7 @@ void Character::CharacterUpdate(flecs::entity characterEntity, TransformComponen
 	animationStateComponent.mCurrentAnimName = AnimationName::RUN;
 	
 	//Changing orientation of the character depending on where it's moving
+	//TODO: copy check from enemies if the sign of direction.x is different, will need Velocity component too
 	direction.x < 0.f ? transformComponent.mScale.x = -fabs(transformComponent.mScale.x) : transformComponent.mScale.x = fabs(transformComponent.mScale.x);
 	
 	//Check for map bounds
@@ -69,35 +77,21 @@ void Character::CharacterUpdate(flecs::entity characterEntity, TransformComponen
 		newPosition.y >= 0 && newPosition.y <= mapTexture.height-CHARACTER_HEIGHT)
 	{
 		const Rectangle newCharacterRect {newPosition.x, newPosition.y, collisionComponent.mRectScale.x, collisionComponent.mRectScale.y};
-
 		bool hasCollided{false};
-		//auto q = ecs.query<CollisionComponent, TransformComponent>();
-		//q.each([&hasCollided,&newCharacterRect, &characterEntity](flecs::entity e, CollisionComponent& otherCollisionComponent, TransformComponent& otherTransformComponent){
-		//	// Avoid computing a collision detection if we already detected a collision.
-		//	if (hasCollided)
-		//		return;
-		//	
-		//	const Rectangle otherRect {otherTransformComponent.mPosition.x, otherTransformComponent.mPosition.y, otherCollisionComponent.mRectScale.x, otherCollisionComponent.mRectScale.y};
-		//	if (e != characterEntity && CheckCollisionRecs(newCharacterRect, otherRect))
-		//	{
-		//		hasCollided = true;
-		//	}
-		//});
+		Rectangle otherRect{};
+		auto filter = characterEntity.world().filter<CollisionComponent, TransformComponent>();
 
-		//QUESTION: I couldnt pass two components into .each query. I tried to create query and use it, it leads to a crash. Apparently I cant create a query inside a system? 
-		//passing a query from outside seems really complicated? Is there a better way to do each with entities that should have several components?
-		//atm I just use transform scale, since it is the same (for rectangle collision) as collision component would be. 
-
-		characterEntity.world().each<TransformComponent>([&hasCollided, &newCharacterRect, &characterEntity](flecs::entity e, TransformComponent& otherTransformComponent) {
+		filter.each([&hasCollided, &newCharacterRect, &otherRect, &characterEntity](flecs::entity e, CollisionComponent& otherCollisionComponent, TransformComponent& otherTransformComponent) {
+			// Avoid computing a collision detection if we already detected a collision.
 			if (hasCollided)
 				return;
-			const Rectangle otherRect{otherTransformComponent.mPosition.x, otherTransformComponent.mPosition.y, otherTransformComponent.mScale.x, otherTransformComponent.mScale.y};
+
+			otherRect = {otherTransformComponent.mPosition.x, otherTransformComponent.mPosition.y, otherCollisionComponent.mRectScale.x, otherCollisionComponent.mRectScale.y};
 			if (e != characterEntity && CheckCollisionRecs(newCharacterRect, otherRect))
 			{
 				hasCollided = true;
 			}
 		});
-
 
 		if (!hasCollided)
 		{
@@ -107,3 +101,7 @@ void Character::CharacterUpdate(flecs::entity characterEntity, TransformComponen
 }
 
 }// namespace game
+
+//QUESTION: I have two ways of doing collisions now, one with .each and one with .iter. The .iter
+// advantage is that i can break out of the loop and dont have to go through each entity if i collide on some
+//of it earlier?
