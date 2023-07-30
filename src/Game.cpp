@@ -4,6 +4,7 @@
 
 #include "Map/Map.h"
 #include "Entity/Character.h"
+#include "Entity/Enemy.h"
 #include "Entity/Tower.h"
 
 namespace game
@@ -33,6 +34,9 @@ static void RegisterComponents(const flecs::world& ecs)
 
 	ecs.component<CollisionComponent>()
 			.member<Vector2>("mRectScale");
+	ecs.component<VelocityComponent>()
+			.member<Vector2>("mDirection")
+			.member<float>("mSpeed");
 
 	ecs.component<TransformComponent>()
 			.member<Vector2>("mPosition")
@@ -66,6 +70,7 @@ Game::Game() : mRenderer(mEcs)
 
 	map::CreateMap(mEcs);
 	Character::InitCharacter(mEcs);
+	Enemy::InitEnemy(mEcs);
 	Tower::InitTower(mEcs);
 
 	mEcs.set<flecs::Rest>({});
