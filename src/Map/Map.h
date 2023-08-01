@@ -2,6 +2,9 @@
 
 #include <flecs.h>
 
+#include <raylib.h>
+#include <raymath.h>
+
 namespace game
 {
 
@@ -11,6 +14,7 @@ namespace map
 {
 
 void CreateMap(flecs::world& ecs);
+bool IsWithinMapBounds(const flecs::entity& mapEntity, const Vector2 newPosition, const Vector2 collisionSize);
 
 } // namespace map
 

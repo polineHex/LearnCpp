@@ -3,8 +3,20 @@
 #include <raylib.h>
 
 #include "Map/Map.h"
-#include "Entity/Character.h"
+#include "Entity/Entity.h"
 #include "Entity/Tower.h"
+
+#include "Entity/Components/TransformComponent.h"
+
+#include "Rendering/RenderUtils.h"
+
+#include "Rendering/Components/AnimationComponent.h"
+#include "Rendering/Components/AnimationStateComponent.h"
+#include "Rendering/Components/SpriteComponent.h"
+#include "Rendering/Components/TextureComponent.h"
+
+#include "Physics/Components/CollisionComponent.h"
+#include "Physics/Components/VelocityComponent.h"
 
 namespace game
 {
@@ -33,6 +45,9 @@ static void RegisterComponents(const flecs::world& ecs)
 
 	ecs.component<CollisionComponent>()
 			.member<Vector2>("mRectScale");
+	ecs.component<VelocityComponent>()
+			.member<Vector2>("mDirection")
+			.member<float>("mSpeed");
 
 	ecs.component<TransformComponent>()
 			.member<Vector2>("mPosition")
@@ -65,7 +80,7 @@ Game::Game() : mRenderer(mEcs)
 	RegisterComponents(mEcs);
 
 	map::CreateMap(mEcs);
-	Character::InitCharacter(mEcs);
+	entity::InitEntity(mEcs);
 	Tower::InitTower(mEcs);
 
 	mEcs.set<flecs::Rest>({});

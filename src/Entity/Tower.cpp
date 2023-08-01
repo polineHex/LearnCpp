@@ -16,13 +16,15 @@ namespace game
 static void PlaceNewTower(flecs::iter& iter);
 
 flecs::entity gTowerPrefab{};
+//QUESTION: why cant it be static? (compiler is unhappy with Vector2)
+const Vector2 gTowerCollisionSize{TOWER_WIDTH * ENTITY_SCALE, TOWER_HEIGHT* ENTITY_SCALE};
 
 void Tower::InitTower(flecs::world& ecs)
 {
 	gTowerPrefab = ecs.prefab<>("towerPrefab")
 			.add<TowerTag>()
 			.override<TransformComponent>() // Need `override` because the data is not gonna be shared.
-			.set<CollisionComponent>({Vector2{TOWER_WIDTH*ENTITY_SCALE, TOWER_HEIGHT*ENTITY_SCALE}}) 
+			.emplace<CollisionComponent>(gTowerCollisionSize) 
 			.override<SpriteComponent>();
 
 	ecs.system("PlaceNewTower")
@@ -37,22 +39,35 @@ void PlaceNewTower(flecs::iter& iter)
 		return;
 
 	const Vector2 mousePosition = GetMousePosition();
-	const TransformComponent transformComponent{Vector2{mousePosition.x, mousePosition.y}, Vector2{TOWER_WIDTH * ENTITY_SCALE, TOWER_HEIGHT*ENTITY_SCALE}};
-	const Rectangle newTowerRect{transformComponent.mPosition.x, transformComponent.mPosition.y, transformComponent.mScale.x, transformComponent.mScale.y};
+	const TransformComponent transformComponent{{mousePosition.x, mousePosition.y}, gTowerCollisionSize};
+	
+	//QUESTION: I am using transform here, but should get the data from collision component. Considering it's always same, should I add global const parameters for it?
+	//what's the best way to "reuse it", considering i will in future have a collider that's different than sprite rect (a sphere on a slime)
+
+
+	const Rectangle newTowerRect{transformComponent.mPosition.x, transformComponent.mPosition.y, gTowerCollisionSize.x, gTowerCollisionSize.y};
 
 	bool hasCollided{false};
-
-	//Replaced collision component for now with transform component, same issue as Character.cpp checking on collision on update, cause cant pass two components in query
-	//Assuming at this point, that collision rect is the same as transform rect
-
-	iter.world().each<TransformComponent>([&hasCollided, &newTowerRect](TransformComponent& otherTransformComponent) {
-		// Avoid computing a collision detection if we already detected a collision.
+	auto filter = iter.world().filter<CollisionComponent, TransformComponent>();
+	
+	filter.iter([&hasCollided, &newTowerRect](flecs::iter& it, CollisionComponent* collisionComponents, TransformComponent* transformComponents) 
+	{
 		if (hasCollided)
 			return;
+		for (int i = 0; i < it.count(); ++i)
+		{
+		auto collisionComponent = collisionComponents[i];
+		auto transformComponent = transformComponents[i];
 
-		const Rectangle otherRect = {otherTransformComponent.mPosition.x, otherTransformComponent.mPosition.y, otherTransformComponent.mScale.x, otherTransformComponent.mScale.y};
+		//QUESTION: how do i check that i am not checking the collision "with itself", aka i am checking Object
+		//with all other Objects, so, I am bound to get collision with "itself"?
+
+		//QUESTION: I didnt want to create a variable every iteration in a for loop, afaik, creating it many times is worse than having non-const being passed?
+		const Rectangle otherRect = {transformComponent.mPosition.x, transformComponent.mPosition.y, collisionComponent.mRectScale.x, collisionComponent.mRectScale.y};
+		
 		if (CheckCollisionRecs(newTowerRect, otherRect))
 			hasCollided = true;
+		}
 	});
 
 	if (hasCollided)
