@@ -21,6 +21,16 @@ void CreateMap(flecs::world& ecs)
 	ecs.add<MapTag>(mapEntity);
 }
 
+bool IsWithinMapBounds(const flecs::entity& mapEntity, const Vector2 newPosition, const Vector2 collisionSize)
+{
+
+	//Check for map bounds
+	const Texture2D mapTexture = mapEntity.get_ref<TextureComponent>()->mTexture;
+
+	return (newPosition.x >= 0 && newPosition.x <= mapTexture.width - collisionSize.x &&
+			newPosition.y >= 0 && newPosition.y <= mapTexture.height - collisionSize.y);
+}
+
 } // namespace map
 
 }// namespace game

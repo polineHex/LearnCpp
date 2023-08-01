@@ -2,31 +2,23 @@
 
 #include <flecs.h>
 
-#include "Entity/Components/TransformComponent.h"
-#include "Rendering/Components/SpriteComponent.h"
-#include "Rendering/Components/AnimationStateComponent.h"
-#include "Physics/Components/CollisionComponent.h"
-#include "Physics/Components/VelocityComponent.h"
+#include <raylib.h>
+#include <raymath.h>
 
 namespace game
 {
 
+struct CharacterTag {};
+
+namespace character
+{
+
 const int CHARACTER_WIDTH = 16;
 const int CHARACTER_HEIGHT = 16;
+const Vector2 CHARACTER_SPAWN_POINT = {100, 100};
 const float CHARACTER_SPEED = 250.f;
 
+void InitCharacter(flecs::world& ecs);
 
-struct CharacterTag {
-};
-
-class Character
-{
-public:
-	static void InitCharacter(flecs::world& ecs);
-private:
-	static void CharacterUpdate(flecs::entity characterEntity, TransformComponent& transformComponent, 
-								AnimationStateComponent& animationStateComponent,
-								CollisionComponent& collisionComponent, VelocityComponent& velocityComponent);
-};
-
+}//namespace character
 }// namespace game
