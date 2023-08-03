@@ -56,10 +56,10 @@ static void RegisterComponents(const flecs::world& ecs)
 			.member<Vector2>("mScale");
 
 	ecs.component<TargetPlayerComponent>()
-			.member<flecs::entity*>("mPlayerTarget");
+			.member<flecs::entity_t>("mPlayerTarget");
 
 	ecs.component<TargetTowerComponent>()
-			.member<flecs::entity*>("mTowerTarget");
+			.member<flecs::entity_t>("mTowerTarget");
 
 	ecs.component<SpriteComponent>()
 			.member<Texture2D>("mTexture")

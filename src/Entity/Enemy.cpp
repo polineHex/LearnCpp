@@ -37,10 +37,10 @@ static void EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transform
 
 void InitEnemy(flecs::world& ecs)
 {
-	flecs::entity* pt = &ecs.component<CharacterTag>().target<CharacterTag>();
+	flecs::entity_t playerEntityRef = ecs.component<CharacterTag>().target<CharacterTag>().id();
 	gGoblinPrefab = ecs.prefab<>("goblinPrefab")
 							.add<EnemyTag>()
-							.set<TargetPlayerComponent>({pt})
+							.set<TargetPlayerComponent>({playerEntityRef})
 							.set_override<TargetTowerComponent>({})
 							.override<TransformComponent>()
 							.emplace<CollisionComponent>(gCharacterSize)
@@ -116,21 +116,13 @@ void SpawnNewEnemy(flecs::iter& iter)
 void EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transformComponent, VelocityComponent& velocityComponent, const TargetPlayerComponent& targetPlayerComponent)
 {
 	//Every tick we calculating next possible position for the enemy
-	Vector2 playerScreenPosition, enemyScreenPosition;
-	
-	//DEBUG
-	flecs::entity* pt1 = targetPlayerComponent.mPlayerTarget;
-	flecs::entity* pt2 = &enemyEntity.world().component<CharacterTag>().target<CharacterTag>();
-	
-	auto player = *pt1;
-	
-	playerScreenPosition = player.get_ref<TransformComponent>()->mPosition;
-	
-	//playerScreenPosition = enemyEntity.world().component<CharacterTag>().target<CharacterTag>().get_ref<TransformComponent>()->mPosition;
-	enemyScreenPosition = transformComponent.mPosition;
+	const flecs::world ecs = enemyEntity.world();
+
+	auto playerEntity = ecs.entity(targetPlayerComponent.mPlayerTarget);
+	const Vector2 playerScreenPosition = playerEntity.get_ref<TransformComponent>()->mPosition;
 	
 	velocityComponent.mPrevDirection = velocityComponent.mDirection;
-	velocityComponent.mDirection = Vector2Subtract(playerScreenPosition, enemyScreenPosition);
+	velocityComponent.mDirection = Vector2Subtract(playerScreenPosition, transformComponent.mPosition);
 
 	//TODO: get collision working here properly and get dimention from the collision object instead of 50
 	if (Vector2Length(velocityComponent.mDirection) < 50.0f)

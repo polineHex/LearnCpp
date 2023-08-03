@@ -6,7 +6,7 @@ namespace game
 {
 
 struct TargetPlayerComponent {
-	flecs::entity* mPlayerTarget;
+	flecs::entity_t mPlayerTarget;
 };
 
 }// namespace game

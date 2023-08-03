@@ -10,8 +10,8 @@ namespace game
 //I follow: make the minimal possible division
 
 struct TargetTowerComponent {
-	//flecs::entity* mPlayerTarget;
-	flecs::entity* mTowerTarget;
+	//flecs::entity_t mPlayerTarget;
+	flecs::entity_t mTowerTarget;
 };
 
 }// namespace game
