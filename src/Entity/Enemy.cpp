@@ -18,6 +18,7 @@
 #include "Rendering/Components/SpriteComponent.h"
 #include "Rendering/Components/TextureComponent.h"
 
+#include "Physics/PhysicsUtils.h"
 #include "Physics/Components/CollisionComponent.h"
 #include "Physics/Components/VelocityComponent.h"
 
@@ -72,40 +73,22 @@ void SpawnNewEnemy(flecs::iter& iter)
 	if (currentTime - lastSpawnTime < 1.0f)// Spawn a new enemy every 1 seconds
 		return;
 
-	lastSpawnTime = currentTime;
-
 	const TransformComponent transformComponent{{0.0f, 0.0f}, gCharacterSize};
 	const Rectangle newGoblinRect{transformComponent.mPosition.x, transformComponent.mPosition.y, gCharacterSize.x, gCharacterSize.y};
-
-	bool hasCollided{false};
-
+	
 	//Save world for efficiency
 	flecs::world ecs = iter.world();
-	
-	auto filter = ecs.filter<CollisionComponent, TransformComponent>();
 
-	filter.iter([&hasCollided, &newGoblinRect](flecs::iter& it, CollisionComponent* collisionComponents, TransformComponent* transformComponents) {
-		if (hasCollided)
-			return;
-		for (int i = 0; i < it.count(); ++i)
-		{
-			auto otherCollisionComponent = collisionComponents[i];
-			auto otherTransformComponent = transformComponents[i];
-			const Rectangle otherRect{otherTransformComponent.mPosition.x, otherTransformComponent.mPosition.y, otherCollisionComponent.mRectScale.x, otherCollisionComponent.mRectScale.y};
-
-			if (CheckCollisionRecs(newGoblinRect, otherRect))
-			{
-				hasCollided = true;
-				return;
-			}
-		}
-	});
+	bool hasCollided = physicsUtils::RectCollision(ecs, newGoblinRect);
 
 	if (hasCollided)
 		return;
 	
 	static int index = 0;
 	const std::string goblinName = std::string("goblin" + std::to_string(index++));
+	
+	//Reset time only when spawn was succesfull
+	lastSpawnTime = currentTime;
 	
 	ecs.entity(goblinName.c_str())
 			.is_a(gGoblinPrefab)

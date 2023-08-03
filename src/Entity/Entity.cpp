@@ -7,6 +7,7 @@
 
 #include "Entity/Components/TransformComponent.h"
 
+#include "Physics/PhysicsUtils.h"
 #include "Physics/Components/CollisionComponent.h"
 #include "Physics/Components/VelocityComponent.h"
 #include "Rendering/Components/AnimationStateComponent.h"
@@ -86,33 +87,8 @@ void UpdateEntityPosition(flecs::entity entity, TransformComponent& transformCom
 	//Check if we are colliding with anything when moved
 	const Rectangle newEntityRect{velocityComponent.mNewPossiblePosition.x, velocityComponent.mNewPossiblePosition.y, 
 								collisionComponent.mRectScale.x, collisionComponent.mRectScale.y};
-	Rectangle otherRect{};
-	bool hasCollided{false};
-
-	auto filter = entity.world().filter<CollisionComponent, TransformComponent>();
-
-	filter.iter([&hasCollided, &newEntityRect, &otherRect, &entity](flecs::iter& it, CollisionComponent* otherCollisionComponents, TransformComponent* otherTransformComponents) {
-		// Avoid computing a collision detection if we already detected a collision.
-		if (hasCollided)
-			return;
-
-		for (int i = 0; i < it.count(); ++i)
-		{
-			auto otherEntity = it.entity(i);
-			if (otherEntity == entity)
-				continue;
-			auto otherCollisionComponent = otherCollisionComponents[i];
-			auto otherTransformComponent = otherTransformComponents[i];
-
-			const Rectangle otherRect = {otherTransformComponent.mPosition.x, otherTransformComponent.mPosition.y, otherCollisionComponent.mRectScale.x, otherCollisionComponent.mRectScale.y};
-			if (CheckCollisionRecs(newEntityRect, otherRect))
-			{
-				hasCollided = true;
-				return;
-			}
-		}
-	});
-
+	
+	bool hasCollided = physicsUtils::RectCollision(entity, newEntityRect);
 	if (!hasCollided)
 	{
 		transformComponent.mPosition = velocityComponent.mNewPossiblePosition;
