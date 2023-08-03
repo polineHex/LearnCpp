@@ -8,6 +8,8 @@
 
 #include "Entity/Character.h"
 #include "Entity/Components/TransformComponent.h"
+#include "Entity/Components/TargetPlayerComponent.h"
+#include "Entity/Components/TargetTowerComponent.h"
 
 #include "Rendering/RenderUtils.h"
 
@@ -30,13 +32,16 @@ flecs::entity gGoblinPrefab{};
 static Vector2 gCharacterSize{ENEMY_WIDTH * ENTITY_SCALE, ENEMY_HEIGHT * ENTITY_SCALE};
 
 static void SpawnNewEnemy(flecs::iter& iter);
-static void EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transformComponent, VelocityComponent& velocityComponent);
+static void EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transformComponent, VelocityComponent& velocityComponent, const TargetPlayerComponent& targetPlayerComponent);
 
 
 void InitEnemy(flecs::world& ecs)
 {
+	flecs::entity* pt = &ecs.component<CharacterTag>().target<CharacterTag>();
 	gGoblinPrefab = ecs.prefab<>("goblinPrefab")
 							.add<EnemyTag>()
+							.set<TargetPlayerComponent>({pt})
+							.set_override<TargetTowerComponent>({})
 							.override<TransformComponent>()
 							.emplace<CollisionComponent>(gCharacterSize)
 							.set_override<VelocityComponent>({{0, 0}, {0, 0}, {0, 0}, ENEMY_SPEED})
@@ -47,12 +52,13 @@ void InitEnemy(flecs::world& ecs)
 															5})
 							.emplace_override<AnimationComponent>(5, 0.1f, 0.0f, 0)
 							.emplace_override<AnimationStateComponent>(AnimationName::IDLE);
+							
 
 	ecs.system("SpawnNewEnemy")
 			.kind(flecs::OnUpdate)
 			.iter(SpawnNewEnemy);
 
-	ecs.system<TransformComponent, VelocityComponent>()
+	ecs.system<TransformComponent, VelocityComponent, TargetPlayerComponent>()
 			.with<EnemyTag>()
 			.kind(flecs::OnUpdate)
 			.each(EnemyUpdate);
@@ -97,22 +103,30 @@ void SpawnNewEnemy(flecs::iter& iter)
 
 	if (hasCollided)
 		return;
-
+	
 	static int index = 0;
 	const std::string goblinName = std::string("goblin" + std::to_string(index++));
+	
 	ecs.entity(goblinName.c_str())
 			.is_a(gGoblinPrefab)
 			.set<TransformComponent>(transformComponent);
-	
-	//TODO: If i want to add an target entity: .emplace<TargetComponent>(ecs.component<CharacterTag>().target<CharacterTag>().get_ref<TransformComponent>())
+
 }
 
-void EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transformComponent, VelocityComponent& velocityComponent)
+void EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transformComponent, VelocityComponent& velocityComponent, const TargetPlayerComponent& targetPlayerComponent)
 {
 	//Every tick we calculating next possible position for the enemy
 	Vector2 playerScreenPosition, enemyScreenPosition;
 	
-	playerScreenPosition = enemyEntity.world().component<CharacterTag>().target<CharacterTag>().get_ref<TransformComponent>()->mPosition;
+	//DEBUG
+	flecs::entity* pt1 = targetPlayerComponent.mPlayerTarget;
+	flecs::entity* pt2 = &enemyEntity.world().component<CharacterTag>().target<CharacterTag>();
+	
+	auto player = *pt1;
+	
+	playerScreenPosition = player.get_ref<TransformComponent>()->mPosition;
+	
+	//playerScreenPosition = enemyEntity.world().component<CharacterTag>().target<CharacterTag>().get_ref<TransformComponent>()->mPosition;
 	enemyScreenPosition = transformComponent.mPosition;
 	
 	velocityComponent.mPrevDirection = velocityComponent.mDirection;

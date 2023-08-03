@@ -7,6 +7,8 @@
 #include "Entity/Tower.h"
 
 #include "Entity/Components/TransformComponent.h"
+#include "Entity/Components/TargetPlayerComponent.h"
+#include "Entity/Components/TargetTowerComponent.h"
 
 #include "Rendering/RenderUtils.h"
 
@@ -52,6 +54,12 @@ static void RegisterComponents(const flecs::world& ecs)
 	ecs.component<TransformComponent>()
 			.member<Vector2>("mPosition")
 			.member<Vector2>("mScale");
+
+	ecs.component<TargetPlayerComponent>()
+			.member<flecs::entity*>("mPlayerTarget");
+
+	ecs.component<TargetTowerComponent>()
+			.member<flecs::entity*>("mTowerTarget");
 
 	ecs.component<SpriteComponent>()
 			.member<Texture2D>("mTexture")
