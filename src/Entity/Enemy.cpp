@@ -30,14 +30,21 @@ namespace game
 namespace enemy
 {
 
+//Globals
+
 flecs::entity gGoblinPrefab{};
 static Vector2 gCharacterSize{ENEMY_WIDTH * ENTITY_SCALE, ENEMY_HEIGHT * ENTITY_SCALE};
 
-static void SpawnNewEnemy(flecs::iter& iter);
-static void EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transformComponent, VelocityComponent& velocityComponent, const TargetTowerComponent& targetTowerComponentconst);
+//Forward declarations
 
+static void SpawnNewEnemy(flecs::iter& iter);
+static bool CheckAndStartNewWave(float& lastWaveEndTime, int& cornerIndex, float currentTime);
+static void SpawnEnemy(flecs::world& ecs, int cornerIndex, float& lastSpawnTime, float currentTime);
 static TargetTowerComponent PickTowerTarget(flecs::world& ecs, const TransformComponent& transformComponent);
 
+static void EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transformComponent, VelocityComponent& velocityComponent, const TargetTowerComponent& targetTowerComponentconst);
+
+//Definitions
 
 void InitEnemy(flecs::world& ecs)
 {
@@ -69,46 +76,96 @@ void InitEnemy(flecs::world& ecs)
 			.each(EnemyUpdate);
 }
 
+//Spawn support functions
 void SpawnNewEnemy(flecs::iter& iter)
 {
+	// Static variables to keep track of the state
+	static float lastWaveEndTime = 0.0f;// Initialized to 0 to indicate that we haven't had a wave yet
 	static float lastSpawnTime = 0.0f;
+	static int cornerIndex = -1;// Will be set in the first wave
+
 	float currentTime = GetTime();
-	if (currentTime - lastSpawnTime < 1.0f)// Spawn a new enemy every 1 seconds
+
+	// Check if it's time to start a new wave and spawn an enemy
+	if (!CheckAndStartNewWave(lastWaveEndTime, cornerIndex, currentTime))
 		return;
 	
-	flecs::world ecs = iter.world();
+	// Spawn a new enemy every ENEMIES_SPAWN_INTERVAL
+	if (currentTime - lastSpawnTime < ENEMIES_SPAWN_INTERVAL)
+		return;
 	
-	const TransformComponent transformComponent{{0.0f, 0.0f}, gCharacterSize};
+	// Spawn the enemy
+	SpawnEnemy(iter.world(), cornerIndex, lastSpawnTime, currentTime);
+}
+
+bool CheckAndStartNewWave(float& lastWaveEndTime, int& cornerIndex, float currentTime)
+{
+	// Determine the current state: wave or pause
+	bool inWave = (currentTime - lastWaveEndTime) < (WAVE_DURATION + PAUSE_DURATION) && (currentTime - lastWaveEndTime) > PAUSE_DURATION;
+
+	if (!inWave)
+	{
+		// We're in a pause
+		if (currentTime - lastWaveEndTime > PAUSE_DURATION)
+		{
+			// The pause is over, start a new wave
+			lastWaveEndTime = currentTime + WAVE_DURATION;
+			cornerIndex = GetRandomValue(0, 3);
+			inWave = true;
+		}
+	}
+	return inWave;
+}
+
+void SpawnEnemy(flecs::world& ecs, int cornerIndex, float& lastSpawnTime, float currentTime)
+{
+	Vector2 spawnPosition{};
+	
+	//Picking map bounds to spawn from the corners of the map
+	const Texture2D mapTexture = ecs.component<MapTag>().target<MapTag>().get_ref<TextureComponent>()->mTexture;
+
+	switch (cornerIndex)
+	{
+		case 0:
+			spawnPosition = {0.0f + gCharacterSize.x, 0.0f + gCharacterSize.y};
+			break;
+		case 1:
+			spawnPosition = {0.0f + gCharacterSize.x, (float)mapTexture.height - gCharacterSize.y};
+			break;
+		case 2:
+			spawnPosition = {(float)mapTexture.width - gCharacterSize.x, 0.0f + gCharacterSize.y};
+			break;
+		default:
+			spawnPosition = {(float)mapTexture.width - gCharacterSize.x, (float)mapTexture.height - gCharacterSize.y};
+			break;
+	}
+	
+	const TransformComponent transformComponent{spawnPosition, gCharacterSize};
 	const Rectangle newGoblinRect{transformComponent.mPosition.x, transformComponent.mPosition.y, gCharacterSize.x, gCharacterSize.y};
-	
-	//Picking a tower, not spawning an enemy if there are no towers
+
+	//Picking a tower
 	TargetTowerComponent targetTowerComponent = PickTowerTarget(ecs, transformComponent);
-	if (targetTowerComponent.mTowerTarget == NULL)
-		return;
 
 	bool hasCollided = physicsUtils::RectCollision(ecs, newGoblinRect);
 	if (hasCollided)
 		return;
-	
-	
-	
+
 	//Setting the name of the goblin
 	static int index = 0;
 	const std::string goblinName = std::string("goblin" + std::to_string(index++));
-	
+
 	//Reset time only when spawn was succesfull
 	lastSpawnTime = currentTime;
-	
+
 	ecs.entity(goblinName.c_str())
 			.is_a(gGoblinPrefab)
 			.set<TargetTowerComponent>(targetTowerComponent)
 			.set<TransformComponent>(transformComponent);
-
 }
 
 TargetTowerComponent PickTowerTarget(flecs::world& ecs, const TransformComponent& transformComponent)
 {
-	
+
 	//Getting random tower to go to (TODO: get the closest tower - function)
 	auto filter = ecs.filter<TowerTag>();
 	flecs::entity_t towerEntityRef{};
@@ -118,13 +175,14 @@ TargetTowerComponent PickTowerTarget(flecs::world& ecs, const TransformComponent
 		if (towerCount == 0)
 			return;
 
-		const int towerIndex = GetRandomValue(0, towerCount-1);
+		const int towerIndex = GetRandomValue(0, towerCount - 1);
 		towerEntityRef = it.entity(towerIndex).id();
 	});
-	
+
 	return {towerEntityRef};
 }
 
+//Movement and attack functions
 void EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transformComponent, VelocityComponent& velocityComponent, const TargetTowerComponent& targetTowerComponent)
 {
 	//Every tick we calculating next possible position for the enemy
@@ -136,6 +194,7 @@ void EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transformCompone
 	if (targetTowerComponent.mTowerTarget == NULL)
 		return;
 
+	//Moving to player
 	//auto playerEntity = ecs.entity(targetPlayerComponent.mPlayerTarget);
 	//const Vector2 playerScreenPosition = playerEntity.get_ref<TransformComponent>()->mPosition;
 	
