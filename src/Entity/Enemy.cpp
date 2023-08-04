@@ -2,6 +2,7 @@
 
 #include <raylib.h>
 #include <raymath.h>
+#include <math.h>
 
 #include "Globals.h"
 #include "Map/Map.h"
@@ -23,14 +24,16 @@
 #include "Physics/Components/CollisionComponent.h"
 #include "Physics/Components/VelocityComponent.h"
 
+// Definitions of the global variables
+float gWaveInProgressDebug = 0.0f;
+float gCurrentWaveDurationDebug = 0.0f;
+float gCurrenSpawnDurationDebug = 0.0f;
 
 
 namespace game
 {
 namespace enemy
 {
-
-//Globals
 
 flecs::entity gGoblinPrefab{};
 static Vector2 gCharacterSize{ENEMY_WIDTH * ENTITY_SCALE, ENEMY_HEIGHT * ENTITY_SCALE};
@@ -40,7 +43,8 @@ static Vector2 gCharacterSize{ENEMY_WIDTH * ENTITY_SCALE, ENEMY_HEIGHT * ENTITY_
 static void SpawnNewEnemy(flecs::iter& iter);
 static bool CheckAndStartNewWave(float& lastWaveEndTime, int& cornerIndex, float currentTime);
 static void SpawnEnemy(flecs::world& ecs, int cornerIndex, float& lastSpawnTime, float currentTime);
-static TargetTowerComponent PickTowerTarget(flecs::world& ecs, const TransformComponent& transformComponent);
+static TargetTowerComponent PickTowerTarget(flecs::world& ecs, const TransformComponent& enemyTransform);
+static TargetTowerComponent PickTowerTarget(flecs::world& ecs);
 
 static void EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transformComponent, VelocityComponent& velocityComponent, const TargetTowerComponent& targetTowerComponentconst);
 
@@ -85,17 +89,21 @@ void SpawnNewEnemy(flecs::iter& iter)
 	static int cornerIndex = -1;// Will be set in the first wave
 
 	float currentTime = GetTime();
-
+	
 	// Check if it's time to start a new wave and spawn an enemy
 	if (!CheckAndStartNewWave(lastWaveEndTime, cornerIndex, currentTime))
 		return;
 	
+	//DEBUG
+	gCurrenSpawnDurationDebug = currentTime - lastSpawnTime;
 	// Spawn a new enemy every ENEMIES_SPAWN_INTERVAL
 	if (currentTime - lastSpawnTime < ENEMIES_SPAWN_INTERVAL)
 		return;
-	
+	//Reset time only when spawn was succesfull?
+	lastSpawnTime = currentTime;
 	// Spawn the enemy
 	SpawnEnemy(iter.world(), cornerIndex, lastSpawnTime, currentTime);
+
 }
 
 bool CheckAndStartNewWave(float& lastWaveEndTime, int& cornerIndex, float currentTime)
@@ -114,6 +122,12 @@ bool CheckAndStartNewWave(float& lastWaveEndTime, int& cornerIndex, float curren
 			inWave = true;
 		}
 	}
+
+	//DEBUG:
+	gWaveInProgressDebug = inWave? 1.0f : 0.0f;
+	gCurrentWaveDurationDebug = currentTime - lastWaveEndTime;
+
+	
 	return inWave;
 }
 
@@ -153,17 +167,47 @@ void SpawnEnemy(flecs::world& ecs, int cornerIndex, float& lastSpawnTime, float 
 	//Setting the name of the goblin
 	static int index = 0;
 	const std::string goblinName = std::string("goblin" + std::to_string(index++));
-
-	//Reset time only when spawn was succesfull
-	lastSpawnTime = currentTime;
-
+		
 	ecs.entity(goblinName.c_str())
 			.is_a(gGoblinPrefab)
 			.set<TargetTowerComponent>(targetTowerComponent)
 			.set<TransformComponent>(transformComponent);
 }
 
-TargetTowerComponent PickTowerTarget(flecs::world& ecs, const TransformComponent& transformComponent)
+TargetTowerComponent PickTowerTarget(flecs::world& ecs, const TransformComponent& enemyTransform)
+{
+	auto filter = ecs.filter<TowerTag, TransformComponent>();
+	flecs::entity_t closestTowerEntity = NULL; //QUESTION: NULL or nullptr?
+	
+	// Initialize to the maximum possible float value
+	float minDistance = std::numeric_limits<float>::max();
+
+	//QUESTION: each didnt work on entity_t?
+	//filter.each([&](flecs::entity_t towerEntityId) 
+	//QUESTION: couldn't get lamba to work without adding
+	//towerTags, cause it's in a filter?
+    
+	filter.iter([&](flecs::iter& it, TowerTag* towerTags, TransformComponent* towerTransformComponents) {
+		for (auto i : it)
+		{
+			// Calculate the distance from this tower to the enemy
+			float dx = towerTransformComponents[i].mPosition.x - enemyTransform.mPosition.x;
+			float dy = towerTransformComponents[i].mPosition.y - enemyTransform.mPosition.y;
+			float distance = sqrt(dx * dx + dy * dy);
+
+			// If this tower is closer than the current closest tower, update the closest tower
+			if (distance < minDistance)
+			{
+				minDistance = distance;
+				closestTowerEntity = it.entity(i).id();
+			}
+		}
+	});
+
+	return {closestTowerEntity};
+}
+
+TargetTowerComponent PickTowerTarget(flecs::world& ecs)
 {
 
 	//Getting random tower to go to (TODO: get the closest tower - function)

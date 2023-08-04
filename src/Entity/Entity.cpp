@@ -40,7 +40,7 @@ void InitEntity(flecs::world& ecs)
 			.each(UpdateEntityPosition);
 	
 	
-	//QUESTION: is it okay to do like this?
+	//TODO: move this into base prefab
 	character::InitCharacter(ecs);
 	enemy::InitEnemy(ecs);
 
