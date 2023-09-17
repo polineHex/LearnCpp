@@ -2,11 +2,16 @@
 
 #include <iostream>
 
+#include "Globals.h"
+
 #include "Entity/Components/TransformComponent.h"
+
+#include "Physics/PhysicsUtils.h"
 #include "Physics/Components/CollisionComponent.h"
+
 #include "Rendering/RenderUtils.h"
 #include "Rendering/Components/SpriteComponent.h"
-#include "Globals.h"
+
 
 namespace game
 {
@@ -16,7 +21,6 @@ namespace game
 static void PlaceNewTower(flecs::iter& iter);
 
 flecs::entity gTowerPrefab{};
-//QUESTION: why cant it be static? (compiler is unhappy with Vector2)
 const Vector2 gTowerCollisionSize{TOWER_WIDTH * ENTITY_SCALE, TOWER_HEIGHT* ENTITY_SCALE};
 
 void Tower::InitTower(flecs::world& ecs)
@@ -40,35 +44,12 @@ void PlaceNewTower(flecs::iter& iter)
 
 	const Vector2 mousePosition = GetMousePosition();
 	const TransformComponent transformComponent{{mousePosition.x, mousePosition.y}, gTowerCollisionSize};
-	
-	//QUESTION: I am using transform here, but should get the data from collision component. Considering it's always same, should I add global const parameters for it?
-	//what's the best way to "reuse it", considering i will in future have a collider that's different than sprite rect (a sphere on a slime)
-
-
 	const Rectangle newTowerRect{transformComponent.mPosition.x, transformComponent.mPosition.y, gTowerCollisionSize.x, gTowerCollisionSize.y};
 
-	bool hasCollided{false};
-	auto filter = iter.world().filter<CollisionComponent, TransformComponent>();
-	
-	filter.iter([&hasCollided, &newTowerRect](flecs::iter& it, CollisionComponent* collisionComponents, TransformComponent* transformComponents) 
-	{
-		if (hasCollided)
-			return;
-		for (int i = 0; i < it.count(); ++i)
-		{
-		auto collisionComponent = collisionComponents[i];
-		auto transformComponent = transformComponents[i];
+	//Save world for efficiency
+	flecs::world ecs = iter.world();
 
-		//QUESTION: how do i check that i am not checking the collision "with itself", aka i am checking Object
-		//with all other Objects, so, I am bound to get collision with "itself"?
-
-		//QUESTION: I didnt want to create a variable every iteration in a for loop, afaik, creating it many times is worse than having non-const being passed?
-		const Rectangle otherRect = {transformComponent.mPosition.x, transformComponent.mPosition.y, collisionComponent.mRectScale.x, collisionComponent.mRectScale.y};
-		
-		if (CheckCollisionRecs(newTowerRect, otherRect))
-			hasCollided = true;
-		}
-	});
+	bool hasCollided = physicsUtils::RectCollision(ecs, newTowerRect);
 
 	if (hasCollided)
 		return;
@@ -77,7 +58,7 @@ void PlaceNewTower(flecs::iter& iter)
 
 	static int index = 0;
 	const std::string towerName = std::string("tower" + std::to_string(index++));
-	iter.world().entity(towerName.c_str())
+	ecs.entity(towerName.c_str())
 			.is_a(gTowerPrefab)
 			.set<TransformComponent>(transformComponent)
 			.set<SpriteComponent>({renderUtils::LoadMyTexture("buildings/towers_spritesheet_16x32_4x1.png"),
