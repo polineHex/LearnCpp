@@ -34,7 +34,6 @@ namespace game
 namespace enemy
 {
 
-flecs::entity gGoblinPrefab{};
 static Vector2 gCharacterSize{ENEMY_WIDTH * ENTITY_SCALE, ENEMY_HEIGHT * ENTITY_SCALE};
 
 //Forward declarations
@@ -55,19 +54,20 @@ void InitEnemy(flecs::world& ecs)
 	//flecs::entity_t playerEntityRef = ecs.component<CharacterTag>().target<CharacterTag>().id();
 	ecs.emplace<EnemyDataSingleton>(0, 0.f, 0.f);
 
-	gGoblinPrefab = ecs.prefab<>("goblinPrefab")
-							.add<EnemyTag>()
-							.set_override<TargetTowerComponent>({})
-							.override<TransformComponent>()
-							.emplace<CollisionComponent>(gCharacterSize)
-							.set_override<VelocityComponent>({{0, 0}, {0, 0}, {0, 0}, ENEMY_SPEED})
-							.set_override<SpriteComponent>({renderUtils::LoadMyTexture("characters/goblin_spritesheet_16x16_8x2.png"),
-															{0, 0, ENEMY_WIDTH, ENEMY_HEIGHT},
-															{gCharacterSize.x, gCharacterSize.y},
-															{0, 0},
-															5})
-							.emplace_override<AnimationComponent>(5, 0.1f, 0.0f, 0)
-							.emplace_override<AnimationStateComponent>(AnimationName::IDLE);
+	//Creating type: EnemyPrefab
+	ecs.prefab<EnemyPrefab>("goblinPrefab")
+				.add<EnemyTag>()
+				.set_override<TargetTowerComponent>({})
+				.override<TransformComponent>()
+				.emplace<CollisionComponent>(gCharacterSize)
+				.set_override<VelocityComponent>({{0, 0}, {0, 0}, {0, 0}, ENEMY_SPEED})
+				.set_override<SpriteComponent>({renderUtils::LoadMyTexture("characters/goblin_spritesheet_16x16_8x2.png"),
+												{0, 0, ENEMY_WIDTH, ENEMY_HEIGHT},
+												{gCharacterSize.x, gCharacterSize.y},
+												{0, 0},
+												5})
+				.emplace_override<AnimationComponent>(5, 0.1f, 0.0f, 0)
+				.emplace_override<AnimationStateComponent>(AnimationName::IDLE);
 							
 	//To get a component from the world, we specify it as singleton. index - which component is the singleton
 	ecs.system<EnemyDataSingleton>("SpawnNewEnemy")
@@ -183,7 +183,7 @@ void SpawnEnemy(flecs::world& ecs, int cornerIndex, float& lastSpawnTime, float 
 	const std::string goblinName = std::string("goblin" + std::to_string(index++));
 		
 	ecs.entity(goblinName.c_str())
-			.is_a(gGoblinPrefab)
+			.is_a<EnemyPrefab>()
 			.set<TargetTowerComponent>({GetClosestTowerId(ecs, transformComponent)})
 			.set<TransformComponent>(transformComponent);
 }

@@ -20,6 +20,7 @@ struct EnemyDataSingleton
 };
 
 struct EnemyTag {};
+struct EnemyPrefab {};
 
 namespace enemy
 {
