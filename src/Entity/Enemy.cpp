@@ -178,7 +178,7 @@ void SpawnEnemy(flecs::world& ecs, int cornerIndex, float& lastSpawnTime, float 
 		
 	ecs.entity(goblinName.c_str())
 			.is_a(gGoblinPrefab)
-			.set<TargetTowerComponent>(*ecs.entity(GetClosestTowerId(ecs, transformComponent)).get<TargetTowerComponent>())
+			.set<TargetTowerComponent>({GetClosestTowerId(ecs, transformComponent)})
 			.set<TransformComponent>(transformComponent);
 }
 
