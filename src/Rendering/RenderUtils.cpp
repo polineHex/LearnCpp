@@ -1,5 +1,6 @@
 #include "RenderUtils.h"
 
+#include <iostream>
 #include <unordered_map>
 
 namespace game
@@ -17,13 +18,13 @@ Texture2D LoadMyTexture(const std::string& texturePath)
 
 	std::string basePath{};
 #if defined(_WIN32) || defined(_WIN64)
-	basePath = "../../../";
+	basePath = "../";
 #elif __APPLE__
 	basePath = "../";
 #endif
 
 	const std::string fullPath = basePath + "assets/textures/" + texturePath;
-
+	std::cout<<"debug: "<<fullPath<<std::endl;
 	Texture2D texture = LoadTexture(fullPath.c_str());
 	textureMap[texturePath] = texture;
 

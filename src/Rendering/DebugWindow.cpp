@@ -10,13 +10,14 @@
 namespace game::Rendering
 {
 
-void DebugWindow::Draw()
+void DebugWindow::Draw(flecs::world& ecs)
 {
+	const EnemyDataSingleton* enemyData = ecs.get<EnemyDataSingleton>();
 	ImGui::Text("WAVE_DURATION and PAUSE_DURATION = 2 and 5");
 	ImGui::Text("Time in progress = %f ", GetTime());
-	ImGui::Text("Wave in progress = %i ", gWaveInProgressDebug);
-	ImGui::Text("Time from last wave ended = %f ", gCurrentWaveDurationDebug);
-	ImGui::Text("Time from last spawn = %f ", gCurrenSpawnDurationDebug);
+	ImGui::Text("Wave in progress = %i ", enemyData->waveInProgressDebug);
+	ImGui::Text("Time from last wave ended = %f ", enemyData->currentWaveDurationDebug);
+	ImGui::Text("Time from last spawn = %f ", enemyData->currentSpawnDurationDebug);
 
 	
 	

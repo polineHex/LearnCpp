@@ -2,13 +2,22 @@
 
 #include <flecs.h>
 
-//DEBUG, QUESTION how to add data to debug window in a better way then extern?
-extern int gWaveInProgressDebug;
-extern float gCurrentWaveDurationDebug;
-extern float gCurrenSpawnDurationDebug;
+////DEBUG, QUESTION how to add data to debug window in a better way then extern?
+//extern int gWaveInProgressDebug;
+//extern float gCurrentWaveDurationDebug;
+//extern float gCurrenSpawnDurationDebug;
 
 namespace game
 {
+
+struct EnemyDataSingleton
+{
+
+	int waveInProgressDebug;
+	float currentWaveDurationDebug;
+	float currentSpawnDurationDebug;
+
+};
 
 struct EnemyTag {};
 

@@ -23,10 +23,10 @@
 #include "Physics/Components/CollisionComponent.h"
 #include "Physics/Components/VelocityComponent.h"
 
-// Definitions of the global variables
-int gWaveInProgressDebug = 0;
-float gCurrentWaveDurationDebug = 0.0f;
-float gCurrenSpawnDurationDebug = 0.0f;
+//// Definitions of the global variables
+//int gWaveInProgressDebug = 0;
+//float gCurrentWaveDurationDebug = 0.0f;
+//float gCurrenSpawnDurationDebug = 0.0f;
 
 
 namespace game
@@ -39,8 +39,8 @@ static Vector2 gCharacterSize{ENEMY_WIDTH * ENTITY_SCALE, ENEMY_HEIGHT * ENTITY_
 
 //Forward declarations
 
-static void SpawnNewEnemy(flecs::iter& iter);
-static bool CheckAndStartNewWave(float& lastWaveEndTime, int& cornerIndex, float currentTime);
+static void SpawnNewEnemy(flecs::iter& iter, EnemyDataSingleton* enemyDatas);
+static bool CheckAndStartNewWave(float& lastWaveEndTime, int& cornerIndex, float currentTime, EnemyDataSingleton* enemyData);
 static bool IsWaveInProgress(const float lastWaveEndTime, const float currentTime);
 static void SpawnEnemy(flecs::world& ecs, int cornerIndex, float& lastSpawnTime, float currentTime);
 static flecs::entity_t GetClosestTowerId(flecs::world& ecs, const TransformComponent& enemyTransform);
@@ -53,6 +53,8 @@ static void EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transform
 void InitEnemy(flecs::world& ecs)
 {
 	//flecs::entity_t playerEntityRef = ecs.component<CharacterTag>().target<CharacterTag>().id();
+	ecs.emplace<EnemyDataSingleton>(0, 0.f, 0.f);
+
 	gGoblinPrefab = ecs.prefab<>("goblinPrefab")
 							.add<EnemyTag>()
 							.set_override<TargetTowerComponent>({})
@@ -67,45 +69,49 @@ void InitEnemy(flecs::world& ecs)
 							.emplace_override<AnimationComponent>(5, 0.1f, 0.0f, 0)
 							.emplace_override<AnimationStateComponent>(AnimationName::IDLE);
 							
-
-	ecs.system("SpawnNewEnemy")
+	//To get a component from the world, we specify it as singleton. index - which component is the singleton
+	ecs.system<EnemyDataSingleton>("SpawnNewEnemy")
+	        .term_at(1).singleton()
 			.kind(flecs::OnUpdate)
 			.iter(SpawnNewEnemy);
 
 	
-	ecs.system<TransformComponent, VelocityComponent, TargetTowerComponent>()
+	ecs.system<TransformComponent, VelocityComponent, TargetTowerComponent>("EnemyUpdate")
 			.with<EnemyTag>()
 			.kind(flecs::OnUpdate)
 			.each(EnemyUpdate);
 }
 
 //Spawn support functions
-void SpawnNewEnemy(flecs::iter& iter)
+void SpawnNewEnemy(flecs::iter& iter, EnemyDataSingleton* enemyDatas)
 {
+	auto enemyData = &enemyDatas[0];
+
 	// Static variables to keep track of the state
 	static float lastWaveEndTime = 0.0f;// Initialized to 0 to indicate that we haven't had a wave yet
 	static float lastSpawnTime = 0.0f;
 	static int cornerIndex = -1;// Will be set in the first wave
 
-	float currentTime = GetTime();
+	const float currentTime = static_cast<float>(GetTime());
 	
 	// Check if it's time to start a new wave and spawn an enemy
-	if (!CheckAndStartNewWave(lastWaveEndTime, cornerIndex, currentTime))
+	if (!CheckAndStartNewWave(lastWaveEndTime, cornerIndex, currentTime, enemyData))
 		return;
 	
 	//DEBUG
-	gCurrenSpawnDurationDebug = currentTime - lastSpawnTime;
+	enemyData->currentSpawnDurationDebug = currentTime - lastSpawnTime;
 	// Spawn a new enemy every ENEMIES_SPAWN_INTERVAL
 	if (currentTime - lastSpawnTime < ENEMIES_SPAWN_INTERVAL)
 		return;
 	//Reset time only when spawn was succesfull?
 	lastSpawnTime = currentTime;
 	// Spawn the enemy
-	SpawnEnemy(iter.world(), cornerIndex, lastSpawnTime, currentTime);
+	flecs::world ecs = iter.world();
+	SpawnEnemy(ecs, cornerIndex, lastSpawnTime, currentTime);
 
 }
 
-bool CheckAndStartNewWave(float& lastWaveEndTime, int& cornerIndex, float currentTime)
+bool CheckAndStartNewWave(float& lastWaveEndTime, int& cornerIndex, float currentTime, EnemyDataSingleton* enemyData)
 {
 	// Determine the current state: wave or pause
 	bool inWave = IsWaveInProgress(lastWaveEndTime, currentTime);
@@ -123,8 +129,8 @@ bool CheckAndStartNewWave(float& lastWaveEndTime, int& cornerIndex, float curren
 	}
 
 	//DEBUG:
-	gWaveInProgressDebug = inWave? 1 : 0;
-	gCurrentWaveDurationDebug = currentTime - lastWaveEndTime;
+	enemyData->waveInProgressDebug = inWave? 1 : 0;
+	enemyData->currentWaveDurationDebug = currentTime - lastWaveEndTime;
 
 	
 	return inWave;

@@ -4,6 +4,7 @@
 
 #include "Map/Map.h"
 #include "Entity/Entity.h"
+#include "Entity/Enemy.h"
 #include "Entity/Tower.h"
 
 #include "Entity/Components/TransformComponent.h"
@@ -77,6 +78,12 @@ static void RegisterComponents(const flecs::world& ecs)
 
 	ecs.component<AnimationStateComponent>()
 	        .member<AnimationName>("mCurrentAnimName");
+
+	ecs.component<EnemyDataSingleton>()
+	        .member<int>("waveInProgressDebug")
+			.member<float>("currentWaveDurationDebug")
+			.member<float>("currentSpawnDurationDebug");
+
 }
 
 Game::Game() : mRenderer(mEcs)

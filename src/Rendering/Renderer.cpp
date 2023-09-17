@@ -98,7 +98,7 @@ void Renderer::DrawDebug(const flecs::iter& iter, int index)
 
 	flecs::world ecs = iter.world();
 
-	DebugWindow::Draw();
+	DebugWindow::Draw(ecs);
 
 	// Keeping this commented to have it at hand easily when we need to look at the demo window.
 	//	ImGui::ShowDemoWindow();
