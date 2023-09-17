@@ -79,6 +79,7 @@ void UpdateEntityPosition(flecs::entity entity, TransformComponent& transformCom
 		return;
 
 	//Check for map bounds
+	flecs::world ecs = entity.world();
 	const flecs::entity& mapEntity = entity.world().component<MapTag>().target<MapTag>();
 
 	if (!map::IsWithinMapBounds(mapEntity, velocityComponent.mNewPossiblePosition, collisionComponent.mRectScale))
@@ -88,7 +89,7 @@ void UpdateEntityPosition(flecs::entity entity, TransformComponent& transformCom
 	const Rectangle newEntityRect{velocityComponent.mNewPossiblePosition.x, velocityComponent.mNewPossiblePosition.y, 
 								collisionComponent.mRectScale.x, collisionComponent.mRectScale.y};
 	
-	bool hasCollided = physicsUtils::RectCollision(entity, newEntityRect);
+	bool hasCollided = physicsUtils::RectCollision(ecs, newEntityRect, entity);
 	if (!hasCollided)
 	{
 		transformComponent.mPosition = velocityComponent.mNewPossiblePosition;

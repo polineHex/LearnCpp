@@ -22,3 +22,4 @@ public:
 
 
 //TODO move to the folder Buildings
+// TODO move to namespace

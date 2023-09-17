@@ -10,7 +10,6 @@
 #include "Entity/Character.h"
 #include "Entity/Tower.h"
 #include "Entity/Components/TransformComponent.h"
-#include "Entity/Components/TargetPlayerComponent.h"
 #include "Entity/Components/TargetTowerComponent.h"
 
 #include "Rendering/RenderUtils.h"
@@ -25,7 +24,7 @@
 #include "Physics/Components/VelocityComponent.h"
 
 // Definitions of the global variables
-float gWaveInProgressDebug = 0.0f;
+int gWaveInProgressDebug = 0;
 float gCurrentWaveDurationDebug = 0.0f;
 float gCurrenSpawnDurationDebug = 0.0f;
 
@@ -42,9 +41,10 @@ static Vector2 gCharacterSize{ENEMY_WIDTH * ENTITY_SCALE, ENEMY_HEIGHT * ENTITY_
 
 static void SpawnNewEnemy(flecs::iter& iter);
 static bool CheckAndStartNewWave(float& lastWaveEndTime, int& cornerIndex, float currentTime);
+static bool IsWaveInProgress(const float lastWaveEndTime, const float currentTime);
 static void SpawnEnemy(flecs::world& ecs, int cornerIndex, float& lastSpawnTime, float currentTime);
-static TargetTowerComponent PickTowerTarget(flecs::world& ecs, const TransformComponent& enemyTransform);
-static TargetTowerComponent PickTowerTarget(flecs::world& ecs);
+static flecs::entity_t GetClosestTowerId(flecs::world& ecs, const TransformComponent& enemyTransform);
+static flecs::entity_t GetRandomTowerId(flecs::world& ecs);
 
 static void EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transformComponent, VelocityComponent& velocityComponent, const TargetTowerComponent& targetTowerComponentconst);
 
@@ -52,10 +52,9 @@ static void EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transform
 
 void InitEnemy(flecs::world& ecs)
 {
-	flecs::entity_t playerEntityRef = ecs.component<CharacterTag>().target<CharacterTag>().id();
+	//flecs::entity_t playerEntityRef = ecs.component<CharacterTag>().target<CharacterTag>().id();
 	gGoblinPrefab = ecs.prefab<>("goblinPrefab")
 							.add<EnemyTag>()
-							.set<TargetPlayerComponent>({playerEntityRef})
 							.set_override<TargetTowerComponent>({})
 							.override<TransformComponent>()
 							.emplace<CollisionComponent>(gCharacterSize)
@@ -109,7 +108,7 @@ void SpawnNewEnemy(flecs::iter& iter)
 bool CheckAndStartNewWave(float& lastWaveEndTime, int& cornerIndex, float currentTime)
 {
 	// Determine the current state: wave or pause
-	bool inWave = (currentTime - lastWaveEndTime) < (WAVE_DURATION + PAUSE_DURATION) && (currentTime - lastWaveEndTime) > PAUSE_DURATION;
+	bool inWave = IsWaveInProgress(lastWaveEndTime, currentTime);
 
 	if (!inWave)
 	{
@@ -124,11 +123,23 @@ bool CheckAndStartNewWave(float& lastWaveEndTime, int& cornerIndex, float curren
 	}
 
 	//DEBUG:
-	gWaveInProgressDebug = inWave? 1.0f : 0.0f;
+	gWaveInProgressDebug = inWave? 1 : 0;
 	gCurrentWaveDurationDebug = currentTime - lastWaveEndTime;
 
 	
 	return inWave;
+}
+
+
+bool IsWaveInProgress(const float lastWaveEndTime, const float currentTime)
+{
+	// Checks if the wave is over
+	if ((currentTime - lastWaveEndTime) >= (WAVE_DURATION + PAUSE_DURATION))
+		return false;
+	// Checks if the pause between waves is in progress
+	if ((currentTime - lastWaveEndTime) <= PAUSE_DURATION)
+		return false;
+	return true;
 }
 
 void SpawnEnemy(flecs::world& ecs, int cornerIndex, float& lastSpawnTime, float currentTime)
@@ -157,9 +168,6 @@ void SpawnEnemy(flecs::world& ecs, int cornerIndex, float& lastSpawnTime, float 
 	const TransformComponent transformComponent{spawnPosition, gCharacterSize};
 	const Rectangle newGoblinRect{transformComponent.mPosition.x, transformComponent.mPosition.y, gCharacterSize.x, gCharacterSize.y};
 
-	//Picking a tower
-	TargetTowerComponent targetTowerComponent = PickTowerTarget(ecs, transformComponent);
-
 	bool hasCollided = physicsUtils::RectCollision(ecs, newGoblinRect);
 	if (hasCollided)
 		return;
@@ -170,24 +178,19 @@ void SpawnEnemy(flecs::world& ecs, int cornerIndex, float& lastSpawnTime, float 
 		
 	ecs.entity(goblinName.c_str())
 			.is_a(gGoblinPrefab)
-			.set<TargetTowerComponent>(targetTowerComponent)
+			.set<TargetTowerComponent>(*ecs.entity(GetClosestTowerId(ecs, transformComponent)).get<TargetTowerComponent>())
 			.set<TransformComponent>(transformComponent);
 }
 
-TargetTowerComponent PickTowerTarget(flecs::world& ecs, const TransformComponent& enemyTransform)
+flecs::entity_t GetClosestTowerId(flecs::world& ecs, const TransformComponent& enemyTransform)
 {
-	auto filter = ecs.filter<TowerTag, TransformComponent>();
-	flecs::entity_t closestTowerEntity = NULL; //QUESTION: NULL or nullptr?
+	auto filter = ecs.filter_builder<TransformComponent>().with<TowerTag>().build();
+	flecs::entity_t closestTowerEntity = 0;
 	
 	// Initialize to the maximum possible float value
 	float minDistance = std::numeric_limits<float>::max();
-
-	//QUESTION: each didnt work on entity_t?
-	//filter.each([&](flecs::entity_t towerEntityId) 
-	//QUESTION: couldn't get lamba to work without adding
-	//towerTags, cause it's in a filter?
-    
-	filter.iter([&](flecs::iter& it, TowerTag* towerTags, TransformComponent* towerTransformComponents) {
+   
+	filter.iter([&](flecs::iter& it, TransformComponent* towerTransformComponents) {
 		for (auto i : it)
 		{
 			// Calculate the distance from this tower to the enemy
@@ -207,7 +210,7 @@ TargetTowerComponent PickTowerTarget(flecs::world& ecs, const TransformComponent
 	return {closestTowerEntity};
 }
 
-TargetTowerComponent PickTowerTarget(flecs::world& ecs)
+flecs::entity_t GetRandomTowerId(flecs::world& ecs)
 {
 
 	//Getting random tower to go to (TODO: get the closest tower - function)

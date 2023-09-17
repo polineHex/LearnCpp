@@ -3,7 +3,7 @@
 #include <flecs.h>
 
 //DEBUG, QUESTION how to add data to debug window in a better way then extern?
-extern float gWaveInProgressDebug;
+extern int gWaveInProgressDebug;
 extern float gCurrentWaveDurationDebug;
 extern float gCurrenSpawnDurationDebug;
 

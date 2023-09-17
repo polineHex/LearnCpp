@@ -14,7 +14,7 @@ void DebugWindow::Draw()
 {
 	ImGui::Text("WAVE_DURATION and PAUSE_DURATION = 2 and 5");
 	ImGui::Text("Time in progress = %f ", GetTime());
-	ImGui::Text("Wave in progress = %f ", gWaveInProgressDebug);
+	ImGui::Text("Wave in progress = %i ", gWaveInProgressDebug);
 	ImGui::Text("Time from last wave ended = %f ", gCurrentWaveDurationDebug);
 	ImGui::Text("Time from last spawn = %f ", gCurrenSpawnDurationDebug);
 

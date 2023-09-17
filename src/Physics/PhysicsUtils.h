@@ -13,12 +13,10 @@ namespace physicsUtils
 {
 
 
-// Checks if the entity will collide with anything else, if placed in the newEntityRect
-bool RectCollision(flecs::entity& entity, const Rectangle newEntityRect);
+// Checks if the entity will collide with anything else, if placed in the newEntityRect.
+// Default entity is passed as invalid entity in case we check collisions before creating an entity (for tower placing
 
-//Check if newly created entity will not collide with anything if put in the newEntityrect. There is 
-//no entity yet, so we passing the world
-bool RectCollision(flecs:: world& ecs, const Rectangle newEntityRect);
+bool RectCollision(flecs::world& ecs, const Rectangle newEntityRect, flecs::entity entity = flecs::entity());
 
 
 }// namespace physicsUtils
