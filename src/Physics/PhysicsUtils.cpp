@@ -10,7 +10,6 @@ namespace game
 namespace physicsUtils
 {
 
-//TODO: prevent player from being stuck in collision
 bool RectCollision(flecs::world& ecs, const Rectangle newEntityRect, flecs::entity entity)
 {
 	bool hasCollided{false};

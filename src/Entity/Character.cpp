@@ -59,7 +59,7 @@ void InitCharacter(flecs::world& ecs)
 	//Logic on update
 	ecs.system<TransformComponent, VelocityComponent>()
 			.with<CharacterTag>()
-			.kind(flecs::OnUpdate)
+			.kind(flecs::PreUpdate)
 			.each(CharacterUpdate);
 
 	//Rendering is after logic is done e.g. PreStore/PostUpdate
@@ -71,7 +71,7 @@ void CharacterInput(flecs::entity characterEntity, VelocityComponent& velocityCo
 		return;
 
 	velocityComponent.mPrevDirection = velocityComponent.mDirection;
-	velocityComponent.mDirection = {0.0f, 0.0f};
+	velocityComponent.mDirection = {0, 0};
 
 	if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
 	{

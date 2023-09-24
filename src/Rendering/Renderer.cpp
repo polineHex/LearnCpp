@@ -120,7 +120,7 @@ void Renderer::UpdateHealthBar(flecs::entity entity, const TransformComponent& t
 	DrawRectangle(healthBarPosition.x, healthBarPosition.y, healthBarWidth, healthBarHeight, BLACK);
 
 	// Draw collision rectangle (red rectangle)
-	DrawRectangle(transformComponent.mPosition.x - 10, transformComponent.mPosition.y - 10, collisionComponent.mRectScale.x + 20, collisionComponent.mRectScale.y + 20, RED);
+	//DrawRectangle(transformComponent.mPosition.x - 10, transformComponent.mPosition.y - 10, collisionComponent.mRectScale.x + 20, collisionComponent.mRectScale.y + 20, RED);
 
 	// Calculate width of the green health bar based on current health
 	float healthPercentage = static_cast<float>(healthComponent.mCurrentHealth) / healthComponent.mMaxHealth;

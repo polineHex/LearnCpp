@@ -4,6 +4,8 @@
 
 #include "Globals.h"
 
+#include "Map/Map.h"
+
 #include "Entity/Components/TransformComponent.h"
 #include "Entity/Components/HealthComponent.h"
 
@@ -45,12 +47,16 @@ void PlaceNewTower(flecs::iter& iter)
 	if (!IsMouseButtonPressed(MOUSE_RIGHT_BUTTON))
 		return;
 
+	flecs::world ecs = iter.world();
+
+	//Checking map bounds
+	const flecs::entity& mapEntity = ecs.component<MapTag>().target<MapTag>();
 	const Vector2 mousePosition = GetMousePosition();
+	if (!map::IsWithinMapBounds(mapEntity, mousePosition, gTowerCollisionSize))
+		return;
+
 	const TransformComponent transformComponent{{mousePosition.x, mousePosition.y}, gTowerCollisionSize};
 	const Rectangle newTowerRect{transformComponent.mPosition.x, transformComponent.mPosition.y, gTowerCollisionSize.x, gTowerCollisionSize.y};
-
-	//Save world for efficiency
-	flecs::world ecs = iter.world();
 
 	bool hasCollided = physicsUtils::RectCollision(ecs, newTowerRect);
 
