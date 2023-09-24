@@ -11,6 +11,7 @@
 #include "Entity/Tower.h"
 #include "Entity/Components/TransformComponent.h"
 #include "Entity/Components/TargetTowerComponent.h"
+#include "Entity/Components/HealthComponent.h"
 
 #include "Rendering/RenderUtils.h"
 
@@ -22,11 +23,6 @@
 #include "Physics/PhysicsUtils.h"
 #include "Physics/Components/CollisionComponent.h"
 #include "Physics/Components/VelocityComponent.h"
-
-//// Definitions of the global variables
-//int gWaveInProgressDebug = 0;
-//float gCurrentWaveDurationDebug = 0.0f;
-//float gCurrenSpawnDurationDebug = 0.0f;
 
 
 namespace game
@@ -58,6 +54,7 @@ void InitEnemy(flecs::world& ecs)
 	ecs.prefab<EnemyPrefab>("goblinPrefab")
 				.add<EnemyTag>()
 				.set_override<TargetTowerComponent>({})
+				.set_override<HealthComponent>({ENEMY_MAX_HEALTH, ENEMY_MAX_HEALTH})
 				.override<TransformComponent>()
 				.emplace<CollisionComponent>(gCharacterSize)
 				.set_override<VelocityComponent>({{0, 0}, {0, 0}, {0, 0}, ENEMY_SPEED})
@@ -65,7 +62,7 @@ void InitEnemy(flecs::world& ecs)
 												{0, 0, ENEMY_WIDTH, ENEMY_HEIGHT},
 												{gCharacterSize.x, gCharacterSize.y},
 												{0, 0},
-												5})
+												1})
 				.emplace_override<AnimationComponent>(5, 0.1f, 0.0f, 0)
 				.emplace_override<AnimationStateComponent>(AnimationName::IDLE);
 							

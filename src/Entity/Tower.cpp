@@ -5,6 +5,7 @@
 #include "Globals.h"
 
 #include "Entity/Components/TransformComponent.h"
+#include "Entity/Components/HealthComponent.h"
 
 #include "Physics/PhysicsUtils.h"
 #include "Physics/Components/CollisionComponent.h"
@@ -20,6 +21,7 @@ namespace game
 // Only need to declare `static` once.
 static void PlaceNewTower(flecs::iter& iter);
 
+//TODO remove global prefab like with the enemy
 flecs::entity gTowerPrefab{};
 const Vector2 gTowerCollisionSize{TOWER_WIDTH * ENTITY_SCALE, TOWER_HEIGHT* ENTITY_SCALE};
 
@@ -27,6 +29,7 @@ void Tower::InitTower(flecs::world& ecs)
 {
 	gTowerPrefab = ecs.prefab<>("towerPrefab")
 			.add<TowerTag>()
+			.set_override<HealthComponent>({TOWER_MAX_HEALTH, TOWER_MAX_HEALTH})
 			.override<TransformComponent>() // Need `override` because the data is not gonna be shared.
 			.emplace<CollisionComponent>(gTowerCollisionSize) 
 			.override<SpriteComponent>();
@@ -63,7 +66,7 @@ void PlaceNewTower(flecs::iter& iter)
 			.set<TransformComponent>(transformComponent)
 			.set<SpriteComponent>({renderUtils::LoadMyTexture("buildings/towers_spritesheet_16x32_4x1.png"),
 								   {(float)spriteIndex * TOWER_WIDTH, 0, TOWER_WIDTH, TOWER_HEIGHT},
-								   {transformComponent.mScale.x,transformComponent.mScale.x}, {0, 0}, 0});
+								   {transformComponent.mScale.x,transformComponent.mScale.x}, {0, 0}, 1});
 }
 
 

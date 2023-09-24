@@ -4,6 +4,7 @@
 
 #include "Entity/Character.h"
 #include "Entity/Enemy.h"
+#include "Entity/Tower.h"
 
 #include "Entity/Components/TransformComponent.h"
 
@@ -43,6 +44,8 @@ void InitEntity(flecs::world& ecs)
 	//TODO: move this into base prefab
 	character::InitCharacter(ecs);
 	enemy::InitEnemy(ecs);
+	Tower::InitTower(ecs);
+
 
 }
 

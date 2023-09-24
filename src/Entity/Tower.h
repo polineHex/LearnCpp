@@ -8,6 +8,7 @@ namespace game
 
 const int TOWER_WIDTH = 16;
 const int TOWER_HEIGHT = 16;
+const int TOWER_MAX_HEALTH = 100;
 
 struct TowerTag {
 };

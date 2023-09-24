@@ -10,5 +10,5 @@ namespace entity
 
 void InitEntity(flecs::world& ecs);
 
-}//namesapce entity
+}//namespace entity
 }// namespace game

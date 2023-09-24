@@ -9,13 +9,11 @@
 
 #include "Entity/Components/TransformComponent.h"
 #include "Entity/Components/TargetTowerComponent.h"
-
-#include "Rendering/RenderUtils.h"
+#include "Entity/Components/HealthComponent.h"
 
 #include "Rendering/Components/AnimationComponent.h"
 #include "Rendering/Components/AnimationStateComponent.h"
 #include "Rendering/Components/SpriteComponent.h"
-#include "Rendering/Components/TextureComponent.h"
 
 #include "Physics/Components/CollisionComponent.h"
 #include "Physics/Components/VelocityComponent.h"
@@ -83,6 +81,10 @@ static void RegisterComponents(const flecs::world& ecs)
 	        .member<int>("waveInProgressDebug")
 			.member<float>("currentWaveDurationDebug")
 			.member<float>("currentSpawnDurationDebug");
+	ecs.component<HealthComponent>()
+	        .member<int>("mMaxHealth")
+			.member<int>("mCurrentHealth");
+
 
 }
 
@@ -92,7 +94,6 @@ Game::Game() : mRenderer(mEcs)
 
 	map::CreateMap(mEcs);
 	entity::InitEntity(mEcs);
-	Tower::InitTower(mEcs);
 
 	mEcs.set<flecs::Rest>({});
 	flecs::log::set_level(0);

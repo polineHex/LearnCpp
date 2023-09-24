@@ -41,7 +41,7 @@ void InitCharacter(flecs::world& ecs)
 														{0, 0, CHARACTER_WIDTH, CHARACTER_HEIGHT},
 														{transformComponent.mScale.x, transformComponent.mScale.y},
 														{0, 0},
-														5})
+														1})
 									.emplace<AnimationComponent>(5, 0.1f, 0.0f, 0)
 									.emplace<AnimationStateComponent>(AnimationName::IDLE);
 
