@@ -272,10 +272,11 @@ void EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transformCompone
 	const Vector2 towerCollision = towerEntity.get<CollisionComponent>()->mRectScale;
 	const Vector2 towerPosition = towerEntity.get_ref<TransformComponent>()->mPosition;
 
-	const Rectangle towerRect{towerPosition.x - 2, towerPosition.y - 2,towerCollision.x + 4, towerCollision.y + 4};
+	const Rectangle towerRect{towerPosition.x - 10, towerPosition.y - 10,towerCollision.x + 20, towerCollision.y + 20};
 	const Rectangle enemyRect{transformComponent.mPosition.x, transformComponent.mPosition.y, collisionComponent.mRectScale.x, collisionComponent.mRectScale.y};
 
 	//Check collision, if collided with tower - attack
+	//TODO: attack once per attack anim
 
 	if (CheckCollisionRecs(enemyRect, towerRect))
 	{

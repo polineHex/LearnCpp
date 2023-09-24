@@ -14,7 +14,7 @@ namespace game
 
 struct AnimationStateComponent {
 	AnimationName mCurrentAnimName;
-	bool mIsAttacking;
+	bool mIsAttacking{false};
 };
 
 }// namespace game

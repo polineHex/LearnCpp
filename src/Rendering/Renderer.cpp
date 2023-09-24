@@ -87,7 +87,7 @@ void Renderer::DrawSprites(flecs::entity entity, const TransformComponent& trans
 				   spriteComponent.mOrigin, 0, WHITE);
 }
 
-void Renderer::UpdateAnimationFrame(flecs::entity entity, AnimationComponent& animationComponent, SpriteComponent& spriteComponent, const AnimationStateComponent& animationStateComponent)
+void Renderer::UpdateAnimationFrame(flecs::entity entity, AnimationComponent& animationComponent, SpriteComponent& spriteComponent, AnimationStateComponent& animationStateComponent)
 {
 	animationComponent.mTimer += GetFrameTime();
 	spriteComponent.mSource.y = (int)animationStateComponent.mCurrentAnimName * spriteComponent.mSource.height;
@@ -96,8 +96,15 @@ void Renderer::UpdateAnimationFrame(flecs::entity entity, AnimationComponent& an
 	{
 		animationComponent.mCurrentFrame++;
 		animationComponent.mTimer = 0.f;
+
 		if (animationComponent.mCurrentFrame > animationComponent.mFrameCount)
+		{
 			animationComponent.mCurrentFrame = 0;
+			//Don't loop attack animations
+			if (animationStateComponent.mIsAttacking)
+				animationStateComponent.mIsAttacking = false;
+
+		}
 		
 		spriteComponent.mSource.x = animationComponent.mCurrentFrame * spriteComponent.mSource.width;
 	}
@@ -113,7 +120,7 @@ void Renderer::UpdateHealthBar(flecs::entity entity, const TransformComponent& t
 	DrawRectangle(healthBarPosition.x, healthBarPosition.y, healthBarWidth, healthBarHeight, BLACK);
 
 	// Draw collision rectangle (red rectangle)
-	DrawRectangle(transformComponent.mPosition.x - 2, transformComponent.mPosition.y - 2, collisionComponent.mRectScale.x + 4, collisionComponent.mRectScale.y + 4, RED);
+	DrawRectangle(transformComponent.mPosition.x - 10, transformComponent.mPosition.y - 10, collisionComponent.mRectScale.x + 20, collisionComponent.mRectScale.y + 20, RED);
 
 	// Calculate width of the green health bar based on current health
 	float healthPercentage = static_cast<float>(healthComponent.mCurrentHealth) / healthComponent.mMaxHealth;
