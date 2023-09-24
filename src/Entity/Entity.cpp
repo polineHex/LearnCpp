@@ -23,20 +23,20 @@ namespace entity
 	
 void UpdateEntityAnimationState(flecs::entity characterEntity, AnimationStateComponent& animationStateComponent, const VelocityComponent& velocityComponent);
 void UpdateEntityOrientationX(flecs::entity entity, TransformComponent& transformComponent, const VelocityComponent& velocityComponent);
-void UpdateEntityPosition(flecs::entity entity, TransformComponent& transformComponent, const VelocityComponent& velocityComponent, const CollisionComponent& collisionComponent);
+void UpdateEntityPosition(flecs::entity entity, TransformComponent& transformComponent, VelocityComponent& velocityComponent, const CollisionComponent& collisionComponent);
 
 
 void InitEntity(flecs::world& ecs)
 {
 	ecs.system<AnimationStateComponent, const VelocityComponent>()
-			.kind(flecs::OnUpdate)
+			.kind(flecs::PostUpdate)
 			.each(UpdateEntityAnimationState);
 	
 	ecs.system<TransformComponent, const VelocityComponent>()
 			.kind(flecs::OnUpdate)
 			.each(UpdateEntityOrientationX);
 	
-	ecs.system<TransformComponent, const VelocityComponent, const CollisionComponent>()
+	ecs.system<TransformComponent, VelocityComponent, const CollisionComponent>()
 			.kind(flecs::OnUpdate)
 			.each(UpdateEntityPosition);
 	
@@ -51,6 +51,12 @@ void InitEntity(flecs::world& ecs)
 
 void UpdateEntityAnimationState(flecs::entity entity, AnimationStateComponent& animationStateComponent, const VelocityComponent& velocityComponent)
 {
+	if (animationStateComponent.mIsAttacking)
+	{
+		animationStateComponent.mCurrentAnimName = AnimationName::ATTACK;
+		return;
+	}
+
 	if (Vector2Length(velocityComponent.mDirection) == 0.0f)
 	{
 		animationStateComponent.mCurrentAnimName = AnimationName::IDLE;
@@ -75,7 +81,8 @@ void UpdateEntityOrientationX(flecs::entity entity, TransformComponent& transfor
 	}
 }
 
-void UpdateEntityPosition(flecs::entity entity, TransformComponent& transformComponent, const VelocityComponent& velocityComponent, const CollisionComponent& collisionComponent)
+//TODO: Player and enemy are moveing very different, let's split
+void UpdateEntityPosition(flecs::entity entity, TransformComponent& transformComponent, VelocityComponent& velocityComponent, const CollisionComponent& collisionComponent)
 {
 	//If we are not moving we dont need to update
 	if (Vector2Length(velocityComponent.mDirection) == 0.0f)
@@ -97,6 +104,8 @@ void UpdateEntityPosition(flecs::entity entity, TransformComponent& transformCom
 	{
 		transformComponent.mPosition = velocityComponent.mNewPossiblePosition;
 	}
+	else
+		velocityComponent.mDirection = {};
 	
 }
 

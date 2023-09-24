@@ -75,7 +75,8 @@ static void RegisterComponents(const flecs::world& ecs)
 			.constant("ATTACK", AnimationName::ATTACK);
 
 	ecs.component<AnimationStateComponent>()
-	        .member<AnimationName>("mCurrentAnimName");
+	        .member<AnimationName>("mCurrentAnimName")
+			.member<bool>("mIsAttacking");
 
 	ecs.component<EnemyDataSingleton>()
 	        .member<int>("waveInProgressDebug")

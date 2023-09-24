@@ -43,7 +43,7 @@ void InitCharacter(flecs::world& ecs)
 														{0, 0},
 														1})
 									.emplace<AnimationComponent>(5, 0.1f, 0.0f, 0)
-									.emplace<AnimationStateComponent>(AnimationName::IDLE);
+									.set<AnimationStateComponent>({AnimationName::IDLE, false});
 
 	ecs.add<CharacterTag>(playerEntity);
 
