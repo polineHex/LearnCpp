@@ -16,6 +16,7 @@
 #include "Rendering/Components/SpriteComponent.h"
 
 #include "Entity/Coin.h"
+#include "Entity/Components/CoinsComponent.h"
 #include "Physics/Components/CollisionComponent.h"
 #include "Physics/Components/VelocityComponent.h"
 
@@ -86,6 +87,10 @@ static void RegisterComponents(const flecs::world& ecs)
 	ecs.component<HealthComponent>()
 	        .member<int>("mMaxHealth")
 			.member<int>("mCurrentHealth");
+
+	ecs.component<CoinsComponent>()
+			.member<int>("mMaxCoinAmount")
+			.member<int>("mCurrentAmount");
 
 
 }

@@ -12,9 +12,10 @@
 #include "Physics/PhysicsUtils.h"
 #include "Physics/Components/CollisionComponent.h"
 
-#include "Rendering/RenderUtils.h"
+#include "Character.h"
+#include "Entity/Components/CoinsComponent.h"
 #include "Rendering/Components/SpriteComponent.h"
-
+#include "Rendering/RenderUtils.h"
 
 namespace game
 {
@@ -48,6 +49,13 @@ void PlaceNewTower(flecs::iter& iter)
 		return;
 
 	flecs::world ecs = iter.world();
+	const flecs::entity& playerEntity = ecs.component<CharacterTag>().target<CharacterTag>();
+	auto coinsComponent = playerEntity.get_ref<CoinsComponent>();
+	const int coinsAmount = coinsComponent->mCoinAmount;
+
+	if (coinsAmount < TOWER_PRICE)
+		return;
+
 
 	//Checking map bounds
 	const flecs::entity& mapEntity = ecs.component<MapTag>().target<MapTag>();
@@ -73,6 +81,9 @@ void PlaceNewTower(flecs::iter& iter)
 			.set<SpriteComponent>({renderUtils::LoadMyTexture("buildings/towers_spritesheet_16x32_4x1.png"),
 								   {(float)spriteIndex * TOWER_WIDTH, 0, TOWER_WIDTH, TOWER_HEIGHT},
 								   {transformComponent.mScale.x,transformComponent.mScale.x}, {0, 0}, 1});
+
+	//Paying the price
+	coinsComponent->mCoinAmount -= TOWER_PRICE;
 }
 
 

@@ -1,6 +1,6 @@
 #include "PhysicsUtils.h"
 
-
+#include "Entity/Coin.h"
 #include "Entity/Components/TransformComponent.h"
 #include "Physics/Components/CollisionComponent.h"
 
@@ -13,7 +13,10 @@ namespace physicsUtils
 bool RectCollision(flecs::world& ecs, const Rectangle newEntityRect, flecs::entity entity)
 {
 	bool hasCollided{false};
-	auto filter = ecs.filter<CollisionComponent, TransformComponent>();
+	//auto filter = ecs.filter<CollisionComponent, TransformComponent>();
+	auto filter = ecs.filter_builder<CollisionComponent, TransformComponent>()
+	        .without<CoinTag>()
+	        .build();
 
 	filter.iter([&hasCollided, &newEntityRect, &entity](flecs::iter& it, CollisionComponent* otherCollisionComponents, TransformComponent* otherTransformComponents) {
 		if (hasCollided)

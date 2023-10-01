@@ -4,10 +4,10 @@
 #include <raymath.h>
 
 #include "Globals.h"
-#include "Map/Map.h"
 
 #include "Enemy.h"
 #include "Entity/Components/TransformComponent.h"
+#include "Entity/Components/CoinsComponent.h"
 #include "Entity/Components/HealthComponent.h"
 
 #include "Rendering/RenderUtils.h"
@@ -16,18 +16,23 @@
 #include "Rendering/Components/AnimationStateComponent.h"
 #include "Rendering/Components/SpriteComponent.h"
 
+#include "Coin.h"
 #include "Physics/Components/CollisionComponent.h"
 #include "Physics/Components/VelocityComponent.h"
 
-namespace game
-{
 
-namespace character
+namespace game::character
 {
 static Vector2 gCharacterSize{CHARACTER_WIDTH * ENTITY_SCALE, CHARACTER_HEIGHT * ENTITY_SCALE};
+//TODO:Calculate it from width later
+static const int gCoinPickupRadius{20};
+//Dependant on the weapon type?
+static const int gAttackRadius{50};
 
 static void CharacterInput(flecs::entity characterEntity, VelocityComponent& velocityComponent, AnimationStateComponent& animationStateComponent, AnimationComponent& animationComponent);
 static void CharacterUpdate(flecs::entity characterEntity, TransformComponent& transformComponent, VelocityComponent& velocityComponent);
+static void PickCoins(flecs::entity characterEntity, CoinsComponent& coinsComponent, const TransformComponent& transformComponent);
+static void SpawnCoin(flecs::world& ecs, const Vector2 position);
 static void Attack(flecs::entity& characterEntity);
 
 void InitCharacter(flecs::world& ecs)
@@ -36,6 +41,7 @@ void InitCharacter(flecs::world& ecs)
 
 	flecs::entity playerEntity = ecs.entity("Player")
 									.add<CharacterTag>()
+									.emplace<CoinsComponent>(100, 10)
 									.emplace<TransformComponent>(transformComponent)
 									.emplace<CollisionComponent>(gCharacterSize)
 									.set<VelocityComponent>({{0, 0}, {0, 0}, transformComponent.mPosition, CHARACTER_SPEED})
@@ -50,16 +56,21 @@ void InitCharacter(flecs::world& ecs)
 	ecs.add<CharacterTag>(playerEntity);
 
 	//Order is important. Input is before update
-	ecs.system<VelocityComponent, AnimationStateComponent, AnimationComponent>()
+	ecs.system<VelocityComponent, AnimationStateComponent, AnimationComponent>("CharacterInput")
 			.with<CharacterTag>()
 			.kind(flecs::PreUpdate)
 			.each(CharacterInput);
 
 	//Logic on update
-	ecs.system<TransformComponent, VelocityComponent>()
+	ecs.system<TransformComponent, VelocityComponent>("CharacterUpdate")
 			.with<CharacterTag>()
 			.kind(flecs::PreUpdate)
 			.each(CharacterUpdate);
+
+	ecs.system<CoinsComponent, const TransformComponent>("PickCoins")
+			.with<CharacterTag>()
+			.kind(flecs::OnUpdate)
+			.each(PickCoins);
 
 	//Rendering is after logic is done e.g. PreStore/PostUpdate
 }
@@ -95,25 +106,19 @@ void CharacterInput(flecs::entity characterEntity, VelocityComponent& velocityCo
 
 void Attack(flecs::entity& characterEntity)
 {
-	const Vector2 playerCollision = characterEntity.get<CollisionComponent>()->mRectScale;
 	const Vector2 playerPosition = characterEntity.get_ref<TransformComponent>()->mPosition;
-	const Rectangle playerRect{playerPosition.x, playerPosition.y,playerCollision.x, playerCollision.y};
 
 	flecs::world ecs = characterEntity.world();
-	auto filter = ecs.filter_builder<TransformComponent, CollisionComponent, HealthComponent>().with<EnemyTag>().build();
+	auto filter = ecs.filter_builder<TransformComponent, HealthComponent>().with<EnemyTag>().build();
 
-	filter.each([&playerRect](flecs::entity e, TransformComponent& transformComponent, CollisionComponent& collisionComponent, HealthComponent& enemyHealth) {
-		// Define enemy rectangle
-		const Rectangle enemyRect{transformComponent.mPosition.x - 10, transformComponent.mPosition.y - 10, collisionComponent.mRectScale.x + 20, collisionComponent.mRectScale.y + 20};
+	filter.each([&playerPosition, &ecs](flecs::entity e, TransformComponent& transformComponent, HealthComponent& enemyHealth) {
 
-		// Check if position intersects with enemy
-		if (CheckCollisionRecs(playerRect, enemyRect)) {
-			// Deal damage to the enemy
+		if (Vector2Distance(transformComponent.mPosition, playerPosition) <= gAttackRadius){
 			enemyHealth.mCurrentHealth -= 50;
 
-			// Check if enemy's health is depleted
 			if (enemyHealth.mCurrentHealth <= 0) {
-				e.destruct();  // Remove the enemy entity
+				SpawnCoin(ecs, transformComponent.mPosition);
+				e.destruct();
 			}
 		}
 	});
@@ -129,5 +134,38 @@ void CharacterUpdate(flecs::entity characterEntity, TransformComponent& transfor
 
 }
 
-}// namespace character	
-}// namespace game
+void SpawnCoin(flecs::world& ecs, const Vector2 position) {
+
+	static int index = 0;
+	const std::string coinName = std::string("coin" + std::to_string(index++));
+
+	ecs.entity(coinName.c_str())
+			.is_a<CoinPrefab>()
+			.set<TransformComponent>({position});
+
+}
+
+void PickCoins(flecs::entity characterEntity, CoinsComponent& coinsComponent, const TransformComponent& transformComponent)
+{
+	const Vector2 playerPosition = transformComponent.mPosition;
+	int newCoinsAmount = coinsComponent.mCoinAmount;
+
+	flecs::world ecs = characterEntity.world();
+	auto filter = ecs.filter_builder<TransformComponent>().with<CoinTag>().build();
+
+	filter.each([&newCoinsAmount, &playerPosition](flecs::entity e, TransformComponent& transformComponent) {
+
+		if (Vector2Distance(transformComponent.mPosition, playerPosition) <= gCoinPickupRadius){
+			newCoinsAmount++;
+			e.destruct();
+		}
+	});
+
+	if (newCoinsAmount >= coinsComponent.mMaxCoinAmount)
+		newCoinsAmount = coinsComponent.mCoinAmount;
+
+	coinsComponent.mCoinAmount = newCoinsAmount;
+}
+
+} // namespace game::character
+

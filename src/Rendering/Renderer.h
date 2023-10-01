@@ -6,10 +6,11 @@
 #include "Entity/Components/HealthComponent.h"
 #include "Physics/Components/CollisionComponent.h"
 
-#include "Rendering/Components/TextureComponent.h"
-#include "Rendering/Components/SpriteComponent.h"
+#include "Entity/Components/CoinsComponent.h"
 #include "Rendering/Components/AnimationComponent.h"
 #include "Rendering/Components/AnimationStateComponent.h"
+#include "Rendering/Components/SpriteComponent.h"
+#include "Rendering/Components/TextureComponent.h"
 
 namespace game
 {
@@ -31,6 +32,7 @@ private:
 	static void DrawSprites(flecs::entity entity, const TransformComponent& transformComponent, const SpriteComponent& spriteComponent); 
 	static void UpdateAnimationFrame(flecs::entity entity, AnimationComponent& animationComponent, SpriteComponent& spriteComponent, AnimationStateComponent& animationStateComponent);
 	static void UpdateHealthBar(flecs::entity entity, const TransformComponent& transformComponent, const CollisionComponent& collisionComponent, const HealthComponent& healthComponent);
+	static void UpdateCoinsCounter(flecs::entity entity, const CoinsComponent& coinsComponent);
 
 	static void DrawDebug(const flecs::iter& iter, int index);
 	static void PostDraw(const flecs::iter& iter, int index);
