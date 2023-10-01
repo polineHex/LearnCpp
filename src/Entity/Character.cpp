@@ -15,7 +15,6 @@
 #include "Rendering/Components/AnimationComponent.h"
 #include "Rendering/Components/AnimationStateComponent.h"
 #include "Rendering/Components/SpriteComponent.h"
-#include "Rendering/Components/TextureComponent.h"
 
 #include "Physics/Components/CollisionComponent.h"
 #include "Physics/Components/VelocityComponent.h"
