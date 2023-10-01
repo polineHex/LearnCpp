@@ -55,7 +55,7 @@ void InitEnemy(flecs::world& ecs)
 	ecs.prefab<EnemyPrefab>("goblinPrefab")
 				.add<EnemyTag>()
 				.set_override<TargetTowerComponent>({})
-				.set_override<HealthComponent>({ENEMY_MAX_HEALTH, ENEMY_MAX_HEALTH})
+				.emplace_override<HealthComponent>(ENEMY_MAX_HEALTH, ENEMY_MAX_HEALTH)
 				.override<TransformComponent>()
 				.emplace<CollisionComponent>(gCharacterSize)
 				.set_override<VelocityComponent>({{0, 0}, {0, 0}, {0, 0}, ENEMY_SPEED})
@@ -65,7 +65,7 @@ void InitEnemy(flecs::world& ecs)
 												{0, 0},
 												1})
 				.emplace_override<AnimationComponent>(5, 0.1f, 0.0f, 0)
-				.set_override<AnimationStateComponent>({AnimationName::IDLE, false});
+				.emplace_override<AnimationStateComponent>(AnimationName::IDLE, false);
 							
 	//To get a component from the world, we specify it as singleton. index - which component is the singleton
 	ecs.system<EnemyDataSingleton>("SpawnNewEnemy")
