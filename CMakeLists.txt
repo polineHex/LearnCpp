@@ -24,6 +24,8 @@ add_subdirectory(third_party/imgui) # From: https://github.com/ocornut/imgui
 
 include_directories(src)
 file(GLOB_RECURSE SRC_FILES src/*.cpp)
-add_executable(minigame ${SRC_FILES})
+add_executable(minigame ${SRC_FILES}
+        src/Entity/Coin.cpp
+        src/Entity/Components/CoinsComponent.h)
 
 target_link_libraries(minigame flecs_static raylib imgui)

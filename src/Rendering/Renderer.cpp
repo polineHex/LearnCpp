@@ -46,6 +46,10 @@ Renderer::Renderer(const flecs::world& ecs)
 			.kind(flecs::PostUpdate)
 			.each(UpdateHealthBar);
 
+	ecs.system<const CoinsComponent>()
+			.kind(flecs::PostUpdate)
+			.each(UpdateCoinsCounter);
+
 	ecs.system("Renderer::DrawDebug")
 			.kind(flecs::PostFrame)
 			.each(DrawDebug);
@@ -146,6 +150,12 @@ void Renderer::PostDraw(const flecs::iter& iter, int index)
 {
 	rlImGuiEnd();
 	EndDrawing();
+}
+void Renderer::UpdateCoinsCounter(flecs::entity entity, const CoinsComponent& coinsComponent)
+{
+	char coinText[50];
+	sprintf(coinText, "Coins: %d", coinsComponent.mCoinAmount);
+	DrawText(coinText, 10, HEIGHT-20, 20, RAYWHITE);
 }
 
 }// namespace Rendering	

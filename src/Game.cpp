@@ -15,6 +15,8 @@
 #include "Rendering/Components/AnimationStateComponent.h"
 #include "Rendering/Components/SpriteComponent.h"
 
+#include "Entity/Coin.h"
+#include "Entity/Components/CoinsComponent.h"
 #include "Physics/Components/CollisionComponent.h"
 #include "Physics/Components/VelocityComponent.h"
 
@@ -86,6 +88,10 @@ static void RegisterComponents(const flecs::world& ecs)
 	        .member<int>("mMaxHealth")
 			.member<int>("mCurrentHealth");
 
+	ecs.component<CoinsComponent>()
+			.member<int>("mMaxCoinAmount")
+			.member<int>("mCurrentAmount");
+
 
 }
 
@@ -94,6 +100,7 @@ Game::Game() : mRenderer(mEcs)
 	RegisterComponents(mEcs);
 
 	map::CreateMap(mEcs);
+	coin::InitCoin(mEcs);
 	entity::InitEntity(mEcs);
 
 	mEcs.set<flecs::Rest>({});
