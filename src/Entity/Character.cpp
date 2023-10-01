@@ -6,7 +6,9 @@
 #include "Globals.h"
 #include "Map/Map.h"
 
+#include "Enemy.h"
 #include "Entity/Components/TransformComponent.h"
+#include "Entity/Components/HealthComponent.h"
 
 #include "Rendering/RenderUtils.h"
 
@@ -25,8 +27,9 @@ namespace character
 {
 static Vector2 gCharacterSize{CHARACTER_WIDTH * ENTITY_SCALE, CHARACTER_HEIGHT * ENTITY_SCALE};
 
-static void CharacterInput(flecs::entity characterEntity, VelocityComponent& velocityComponent);
+static void CharacterInput(flecs::entity characterEntity, VelocityComponent& velocityComponent, AnimationStateComponent& animationStateComponent, AnimationComponent& animationComponent);
 static void CharacterUpdate(flecs::entity characterEntity, TransformComponent& transformComponent, VelocityComponent& velocityComponent);
+static void Attack(flecs::entity& characterEntity);
 
 void InitCharacter(flecs::world& ecs)
 {
@@ -41,14 +44,14 @@ void InitCharacter(flecs::world& ecs)
 														{0, 0, CHARACTER_WIDTH, CHARACTER_HEIGHT},
 														{transformComponent.mScale.x, transformComponent.mScale.y},
 														{0, 0},
-														5})
+														1})
 									.emplace<AnimationComponent>(5, 0.1f, 0.0f, 0)
-									.emplace<AnimationStateComponent>(AnimationName::IDLE);
+									.set<AnimationStateComponent>({AnimationName::IDLE, false});
 
 	ecs.add<CharacterTag>(playerEntity);
 
 	//Order is important. Input is before update
-	ecs.system<VelocityComponent>()
+	ecs.system<VelocityComponent, AnimationStateComponent, AnimationComponent>()
 			.with<CharacterTag>()
 			.kind(flecs::PreUpdate)
 			.each(CharacterInput);
@@ -56,16 +59,27 @@ void InitCharacter(flecs::world& ecs)
 	//Logic on update
 	ecs.system<TransformComponent, VelocityComponent>()
 			.with<CharacterTag>()
-			.kind(flecs::OnUpdate)
+			.kind(flecs::PreUpdate)
 			.each(CharacterUpdate);
 
 	//Rendering is after logic is done e.g. PreStore/PostUpdate
 }
 
-void CharacterInput(flecs::entity characterEntity, VelocityComponent& velocityComponent)
+void CharacterInput(flecs::entity characterEntity, VelocityComponent& velocityComponent, AnimationStateComponent& animationStateComponent, AnimationComponent& animationComponent)
 {
+	if (animationStateComponent.mIsAttacking)
+		return;
+
 	velocityComponent.mPrevDirection = velocityComponent.mDirection;
-	velocityComponent.mDirection = {0.0f, 0.0f};
+	velocityComponent.mDirection = {0, 0};
+
+	if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+	{
+		animationStateComponent.mIsAttacking = true;
+		animationComponent.mCurrentFrame = 0; //To start attack from first frame
+		Attack(characterEntity);
+		return;
+	}
 
 	if (IsKeyDown(KEY_A))
 		velocityComponent.mDirection.x -= 1.0f;
@@ -76,6 +90,35 @@ void CharacterInput(flecs::entity characterEntity, VelocityComponent& velocityCo
 		velocityComponent.mDirection.y -= 1.0f;
 	else if (IsKeyDown(KEY_S))
 		velocityComponent.mDirection.y += 1.0f;
+
+
+}
+
+void Attack(flecs::entity& characterEntity)
+{
+	const Vector2 playerCollision = characterEntity.get<CollisionComponent>()->mRectScale;
+	const Vector2 playerPosition = characterEntity.get_ref<TransformComponent>()->mPosition;
+	const Rectangle playerRect{playerPosition.x, playerPosition.y,playerCollision.x, playerCollision.y};
+
+	flecs::world ecs = characterEntity.world();
+	auto filter = ecs.filter_builder<TransformComponent, CollisionComponent, HealthComponent>().with<EnemyTag>().build();
+
+	filter.each([&playerRect](flecs::entity e, TransformComponent& transformComponent, CollisionComponent& collisionComponent, HealthComponent& enemyHealth) {
+		// Define enemy rectangle
+		const Rectangle enemyRect{transformComponent.mPosition.x - 10, transformComponent.mPosition.y - 10, collisionComponent.mRectScale.x + 20, collisionComponent.mRectScale.y + 20};
+
+		// Check if position intersects with enemy
+		if (CheckCollisionRecs(playerRect, enemyRect)) {
+			// Deal damage to the enemy
+			enemyHealth.mCurrentHealth -= 50;
+
+			// Check if enemy's health is depleted
+			if (enemyHealth.mCurrentHealth <= 0) {
+				e.destruct();  // Remove the enemy entity
+			}
+		}
+	});
+
 }
 
 void CharacterUpdate(flecs::entity characterEntity, TransformComponent& transformComponent, VelocityComponent& velocityComponent)

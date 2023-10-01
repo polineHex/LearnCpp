@@ -11,6 +11,7 @@
 #include "Entity/Tower.h"
 #include "Entity/Components/TransformComponent.h"
 #include "Entity/Components/TargetTowerComponent.h"
+#include "Entity/Components/HealthComponent.h"
 
 #include "Rendering/RenderUtils.h"
 
@@ -22,11 +23,6 @@
 #include "Physics/PhysicsUtils.h"
 #include "Physics/Components/CollisionComponent.h"
 #include "Physics/Components/VelocityComponent.h"
-
-//// Definitions of the global variables
-//int gWaveInProgressDebug = 0;
-//float gCurrentWaveDurationDebug = 0.0f;
-//float gCurrenSpawnDurationDebug = 0.0f;
 
 
 namespace game
@@ -45,19 +41,21 @@ static void SpawnEnemy(flecs::world& ecs, int cornerIndex, float& lastSpawnTime,
 static flecs::entity_t GetClosestTowerId(flecs::world& ecs, const TransformComponent& enemyTransform);
 static flecs::entity_t GetRandomTowerId(flecs::world& ecs);
 
-static void EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transformComponent, VelocityComponent& velocityComponent, const TargetTowerComponent& targetTowerComponentconst);
+static void EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transformComponent, VelocityComponent& velocityComponent, TargetTowerComponent& targetTowerComponent,
+						const CollisionComponent& collisionComponent, AnimationStateComponent& animationStateComponent);
+static void EnemyMove(flecs::world& ecs, TransformComponent& transformComponent, VelocityComponent& velocityComponent, const Vector2& movePosition);
 
 //Definitions
 
 void InitEnemy(flecs::world& ecs)
 {
-	//flecs::entity_t playerEntityRef = ecs.component<CharacterTag>().target<CharacterTag>().id();
 	ecs.emplace<EnemyDataSingleton>(0, 0.f, 0.f);
 
 	//Creating type: EnemyPrefab
 	ecs.prefab<EnemyPrefab>("goblinPrefab")
 				.add<EnemyTag>()
 				.set_override<TargetTowerComponent>({})
+				.emplace_override<HealthComponent>(ENEMY_MAX_HEALTH, ENEMY_MAX_HEALTH)
 				.override<TransformComponent>()
 				.emplace<CollisionComponent>(gCharacterSize)
 				.set_override<VelocityComponent>({{0, 0}, {0, 0}, {0, 0}, ENEMY_SPEED})
@@ -65,9 +63,9 @@ void InitEnemy(flecs::world& ecs)
 												{0, 0, ENEMY_WIDTH, ENEMY_HEIGHT},
 												{gCharacterSize.x, gCharacterSize.y},
 												{0, 0},
-												5})
+												1})
 				.emplace_override<AnimationComponent>(5, 0.1f, 0.0f, 0)
-				.emplace_override<AnimationStateComponent>(AnimationName::IDLE);
+				.emplace_override<AnimationStateComponent>(AnimationName::IDLE, false);
 							
 	//To get a component from the world, we specify it as singleton. index - which component is the singleton
 	ecs.system<EnemyDataSingleton>("SpawnNewEnemy")
@@ -76,7 +74,7 @@ void InitEnemy(flecs::world& ecs)
 			.iter(SpawnNewEnemy);
 
 	
-	ecs.system<TransformComponent, VelocityComponent, TargetTowerComponent>("EnemyUpdate")
+	ecs.system<TransformComponent, VelocityComponent, TargetTowerComponent, const CollisionComponent, AnimationStateComponent>("EnemyUpdate")
 			.with<EnemyTag>()
 			.kind(flecs::OnUpdate)
 			.each(EnemyUpdate);
@@ -235,38 +233,78 @@ flecs::entity_t GetRandomTowerId(flecs::world& ecs)
 	return {towerEntityRef};
 }
 
-//Movement and attack functions
-void EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transformComponent, VelocityComponent& velocityComponent, const TargetTowerComponent& targetTowerComponent)
+void EnemyMove(flecs::world& ecs, TransformComponent& transformComponent, VelocityComponent& velocityComponent, const Vector2& movePosition)
 {
-	//Every tick we calculating next possible position for the enemy
+	velocityComponent.mPrevDirection = velocityComponent.mDirection;
+	velocityComponent.mDirection = Vector2Subtract(movePosition, transformComponent.mPosition);
+
+	velocityComponent.mNewPossiblePosition = Vector2Add(transformComponent.mPosition,
+														Vector2Scale(Vector2Normalize(velocityComponent.mDirection), velocityComponent.mSpeed * GetFrameTime()));
+}
+
+void EnemyUpdate(flecs::entity enemyEntity, TransformComponent& transformComponent, VelocityComponent& velocityComponent, TargetTowerComponent& targetTowerComponent,
+				 const CollisionComponent& collisionComponent, AnimationStateComponent& animationStateComponent)
+{
+
 	flecs::world ecs = enemyEntity.world();
+	//Pick target tower (in case previous one was removed from the game)
+
+	if (!ecs.entity(targetTowerComponent.mTowerTarget).is_valid())
+	{
+		animationStateComponent.mIsAttacking = false;
+		targetTowerComponent.mTowerTarget = GetClosestTowerId(ecs, transformComponent);
+	}
+
+
+	if (targetTowerComponent.mTowerTarget == 0)
+	{//TODO: game  over? or enemies need to reach player?
+		velocityComponent.mDirection = {};
+		animationStateComponent.mIsAttacking = false;
+		return;
+	}
+
+
+	//running to player
+	// const flecs::entity& playerEntity = ecs.component<CharacterTag>().target<CharacterTag>();
+	//movePosition = playerEntity.get<TransformComponent>()->mPosition;
+
+	auto towerEntity = ecs.entity(targetTowerComponent.mTowerTarget);
+	const Vector2 towerCollision = towerEntity.get<CollisionComponent>()->mRectScale;
+	const Vector2 towerPosition = towerEntity.get_ref<TransformComponent>()->mPosition;
+
+	const Rectangle towerRect{towerPosition.x - 10, towerPosition.y - 10,towerCollision.x + 20, towerCollision.y + 20};
+	const Rectangle enemyRect{transformComponent.mPosition.x, transformComponent.mPosition.y, collisionComponent.mRectScale.x, collisionComponent.mRectScale.y};
+
+	//Check collision, if collided with tower - attack
+	//TODO: attack once per attack anim
+
+	if (CheckCollisionRecs(enemyRect, towerRect))
+	{
+		auto towerHealth = towerEntity.get_ref<HealthComponent>();
+		velocityComponent.mDirection = {};
+		animationStateComponent.mIsAttacking = true;
+		towerHealth->mCurrentHealth -= 1;
+		 if (towerHealth->mCurrentHealth <= 0) {
+			towerEntity.destruct();
+			targetTowerComponent.mTowerTarget = 0;  // Remove the tower entity?
+			animationStateComponent.mIsAttacking = false;
+		 }
+		 return;
+	}
+
+
+	//If collided with anything else, try to step left, then right, then down, then up
+
+	//If there is no collision, move to target tower
+
+
+
+	EnemyMove(ecs, transformComponent, velocityComponent, towerPosition);
 
 	//TODO: update idling enemies with a tower then they have none and a new appears
 	//TODO: decide where to run with enemies, when there are no towers
 
-	if (targetTowerComponent.mTowerTarget == NULL)
-		return;
 
-	//Moving to player
-	//auto playerEntity = ecs.entity(targetPlayerComponent.mPlayerTarget);
-	//const Vector2 playerScreenPosition = playerEntity.get_ref<TransformComponent>()->mPosition;
-	
-	auto towerEntity = ecs.entity(targetTowerComponent.mTowerTarget);
-	const Vector2 towerPosition = towerEntity.get_ref<TransformComponent>()->mPosition;
-	
-	
-	velocityComponent.mPrevDirection = velocityComponent.mDirection;
-	velocityComponent.mDirection = Vector2Subtract(towerPosition, transformComponent.mPosition);
-
-	//TODO: get collision working here properly and get dimention from the collision object instead of 50
-	if (Vector2Length(velocityComponent.mDirection) < 50.0f)
-	{
-		velocityComponent.mDirection = {};
-		return;
-	}
-
-	velocityComponent.mNewPossiblePosition = Vector2Add(transformComponent.mPosition,
-										   Vector2Scale(Vector2Normalize(velocityComponent.mDirection), velocityComponent.mSpeed * GetFrameTime()));
 }
 
 

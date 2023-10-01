@@ -2,10 +2,6 @@
 
 #include <flecs.h>
 
-////DEBUG, QUESTION how to add data to debug window in a better way then extern?
-//extern int gWaveInProgressDebug;
-//extern float gCurrentWaveDurationDebug;
-//extern float gCurrenSpawnDurationDebug;
 
 namespace game
 {
@@ -29,6 +25,7 @@ namespace enemy
 const int ENEMY_WIDTH = 16;
 const int ENEMY_HEIGHT = 16;
 const float ENEMY_SPEED = 150.0f;
+const int ENEMY_MAX_HEALTH = 100;
 const float PAUSE_DURATION = 5.0f;
 const float WAVE_DURATION = 2.0f;
 const float ENEMIES_SPAWN_INTERVAL = 0.5f;
