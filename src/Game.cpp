@@ -15,6 +15,7 @@
 #include "Rendering/Components/AnimationStateComponent.h"
 #include "Rendering/Components/SpriteComponent.h"
 
+#include "Entity/Coin.h"
 #include "Physics/Components/CollisionComponent.h"
 #include "Physics/Components/VelocityComponent.h"
 
@@ -94,6 +95,7 @@ Game::Game() : mRenderer(mEcs)
 	RegisterComponents(mEcs);
 
 	map::CreateMap(mEcs);
+	coin::InitCoin(mEcs);
 	entity::InitEntity(mEcs);
 
 	mEcs.set<flecs::Rest>({});
